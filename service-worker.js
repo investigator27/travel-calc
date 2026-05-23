@@ -1,12 +1,12 @@
 const BASE = '/travel-calc/';
-const CACHE = 'surveillance-travel-pwa-v2';
+const CACHE = 'surveillance-travel-pwa-v4';
 const ASSETS = [
   BASE,
   BASE + 'surveillance-travel-calculator.html',
   BASE + 'manifest.webmanifest',
   BASE + 'service-worker.js',
-  BASE + 'assets/icon-192.svg',
-  BASE + 'assets/icon-512.svg'
+  BASE + 'assets/icon-192.png',
+  BASE + 'assets/icon-512.png'
 ];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
