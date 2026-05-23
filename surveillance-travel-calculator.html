@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Travel Calc" />
   <title>Surveillance Travel Calculator</title>
-  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="manifest" href="./manifest-4.webmanifest" />
   <script>window.__BASE_PATH__ = '/travel-calc/';</script>
   <link rel="preconnect" href="https://api.fontshare.com" />
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
@@ -133,7 +133,31 @@
   let deferredPrompt=null; const installBtn=document.getElementById('installBtn'); const menuPanel=document.getElementById('menuPanel'); const menuToggle=document.querySelector('[data-menu-toggle]'); const menuThemeBtn=document.getElementById('menuThemeBtn'); const menuHowBtn=document.getElementById('menuHowBtn'); const howModal=document.getElementById('howModal'); const closeHow=document.getElementById('closeHow'); const setTheme=(t)=>{theme=t;document.documentElement.setAttribute('data-theme',theme);renderThemeIcon();}; menuToggle.addEventListener('click',()=>menuPanel.classList.toggle('hidden')); document.addEventListener('click',e=>{if(!menuPanel.contains(e.target)&&!menuToggle.contains(e.target)) menuPanel.classList.add('hidden');}); menuThemeBtn.addEventListener('click',()=>{setTheme(theme==='dark'?'light':'dark');menuPanel.classList.add('hidden');}); menuHowBtn.addEventListener('click',()=>{howModal.classList.remove('hidden');howModal.setAttribute('aria-hidden','false');menuPanel.classList.add('hidden');}); closeHow.addEventListener('click',()=>{howModal.classList.add('hidden');howModal.setAttribute('aria-hidden','true');}); howModal.addEventListener('click',e=>{if(e.target===howModal){howModal.classList.add('hidden');howModal.setAttribute('aria-hidden','true');}});
   window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;installBtn.classList.remove('hidden');});
   installBtn.addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;installBtn.classList.add('hidden');});
-  if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register((window.__BASE_PATH__||'./')+'service-worker.js').catch(()=>{});});}
+  if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register((window.__BASE_PATH__||'./')+'service-worker-5.js').catch(()=>{});});}
 </script>
 </body>
 </html>
+<script>
+(function(){
+ const byId=id=>document.getElementById(id);
+ const menuToggle=document.querySelector('[data-menu-toggle]');
+ const menuPanel=byId('menuPanel');
+ const mapsBtn=byId('mapsBtn');
+ const citySelect=byId('city');
+ const eventInput=byId('event');
+ const oneWayBtn=[...document.querySelectorAll('.segment')].find(b=>b.dataset.trip==='oneway');
+ const roundTripBtn=[...document.querySelectorAll('.segment')].find(b=>b.dataset.trip==='roundtrip');
+ const calcBtn=byId('calculateBtn');
+ const clearBtn=byId('clearBtn');
+ const status=byId('statusBox');
+ const res=byId('resultsSection');
+ function show(m,t=''){status.className='status show '+t; status.textContent=m;}
+ function hide(){status.className='status hidden'; status.textContent='';}
+ if(menuToggle&&menuPanel) menuToggle.addEventListener('click', e=>{e.stopPropagation(); menuPanel.classList.toggle('hidden');});
+ document.addEventListener('click', e=>{if(menuPanel&&!menuPanel.contains(e.target)&&menuToggle&&!menuToggle.contains(e.target)) menuPanel.classList.add('hidden');});
+ if(mapsBtn) mapsBtn.addEventListener('click', ()=>{const o=(citySelect&&citySelect.value||'').trim(); const d=(eventInput&&eventInput.value||'').trim(); if(!o) return show('Select a Starting Location first.','error'); if(!d) return show('Enter a Surveillance Event Address first.','error'); hide(); const u='https://www.google.com/maps/dir/?api=1&travelmode=driving&origin='+encodeURIComponent(o)+'&destination='+encodeURIComponent(d); window.open(u,'_blank','noopener,noreferrer');});
+ if(calcBtn) calcBtn.addEventListener('click', ()=>{hide(); const d=byId('distance'); const h=byId('hours'); const m=byId('minutes'); const dist=parseFloat(d&&d.value||''); const hrs=parseFloat(h&&h.value||'0'); const mins=parseFloat(m&&m.value||'0'); if(!Number.isFinite(dist)||dist<0) return show('Enter a valid one-way route distance in km from Google Maps.','error'); if((hrs*60+mins)<=0) return show('Enter the full one-way route time from Google Maps.','error'); const trip='oneway'; const full=hrs*60+mins; const removedKm=Math.min(60,dist); const removedMins=dist>0 ? full*(removedKm/dist) : 0; const billKm=Math.max(0,dist-60); const billMins=Math.max(0,full-removedMins); byId('billableKm').textContent=billKm.toFixed(1)+' km'; byId('billableTime').textContent=Math.floor(billMins/60)+'h '+String(Math.round(billMins%60)).padStart(2,'0')+'m'; byId('removedKm').textContent=removedKm.toFixed(1)+' km'; byId('removedTime').textContent=Math.floor(removedMins/60)+'h '+String(Math.round(removedMins%60)).padStart(2,'0')+'m'; byId('resultTripLine').textContent='One Way'; byId('summaryLine').textContent='Enter These Values In TrackOps Mobile.'; byId('summaryNote').textContent='The first 60 km one way and the estimated matching travel time have been removed. The remaining values are billable.'; res.classList.remove('hidden'); show('Calculation complete.','success');});
+ if(clearBtn) clearBtn.addEventListener('click', ()=>{if(citySelect) citySelect.value=''; if(eventInput) eventInput.value=''; ['distance','hours','minutes'].forEach(id=>{const el=byId(id); if(el) el.value='';}); res.classList.add('hidden'); hide();});
+ if(oneWayBtn&&roundTripBtn){ oneWayBtn.addEventListener('click', ()=>{oneWayBtn.classList.add('active'); roundTripBtn.classList.remove('active'); oneWayBtn.setAttribute('aria-pressed','true'); roundTripBtn.setAttribute('aria-pressed','false');}); roundTripBtn.addEventListener('click', ()=>{roundTripBtn.classList.add('active'); oneWayBtn.classList.remove('active'); roundTripBtn.setAttribute('aria-pressed','true'); oneWayBtn.setAttribute('aria-pressed','false');}); }
+})();
+</script>
