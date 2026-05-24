@@ -206,50 +206,43 @@
     const destination = (eventInput?.value || '').trim();
 
     if (!origin && !destination) {
-      const title = 'Missing Required Fields';
-      alert(title + '
-
-Please select a Starting Location and enter the Surveillance Event Address before opening Google Maps.');
-      setStatus('Starting Location and Surveillance Event Address are required.', 'error');
+      setStatus('Please select a Starting Location and enter the Surveillance Event Address first.', 'error');
       return;
     }
 
     if (!origin) {
-      const title = 'Starting Location Required';
-      alert(title + '
-
-Please select a Starting Location before opening Google Maps.');
-      setStatus('Select a Starting Location first.', 'error');
+      setStatus('Please select a Starting Location first.', 'error');
       return;
     }
 
     if (!destination) {
-      const title = 'Surveillance Event Address Required';
-      alert(title + '
-
-Please enter the Surveillance Event Address before opening Google Maps.');
-      setStatus('Enter a Surveillance Event Address first.', 'error');
+      setStatus('Please enter the Surveillance Event Address first.', 'error');
       return;
     }
 
     hideStatus();
 
-    // Open directions screen (NOT immediate navigation)
-    // Includes selected origin from app
+    // Directions screen only (not active navigation)
+    // Preserves selected origin from app
     const mapsUrl =
       'https://www.google.com/maps/dir/?api=1' +
       '&origin=' + encodeURIComponent(origin) +
       '&destination=' + encodeURIComponent(destination) +
       '&travelmode=driving';
 
-    // Open externally while keeping app page
-    const link = document.createElement('a');
-    link.href = mapsUrl;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    // Open without replacing current app page
+    const win = window.open(mapsUrl, '_blank');
+
+    // Fallback if popup blocked
+    if (!win) {
+      const a = document.createElement('a');
+      a.href = mapsUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
   }
 
   function calculate() {
