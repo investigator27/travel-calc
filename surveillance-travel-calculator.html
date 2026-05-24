@@ -100,8 +100,8 @@
     <button class='menu-item' id='menuHowBtn' type='button'>How To</button>
   </div>
   <section class="card" aria-labelledby="form-title">
-    <div><h2 id="form-title" class="card-title">Trip Details</h2><p class="card-sub">elect the starting location, enter the surveillance event address, launch Google Maps and verify the one-way hour(s), minute(s) and mileage.</p></div>
-    <div><div class="seg-label">Billing Type</div><div class="segmented" role="group" aria-label="Billing type"><button type="button" class="segment active" data-trip="oneway" aria-pressed="true">One Way</button><button type="button" class="segment" data-trip="roundtrip" aria-pressed="false">Round Trip</button></div></div>
+    <div><h2 id="form-title" class="card-title">Extended Travel Details</h2><p class="card-sub">Select the starting location, enter the surveillance event address, launch Google Maps and verify the one-way hour(s), minute(s) and mileage.</p></div>
+    <div><div class="seg-label">Billing Type</div><div class="segmented" role="group" aria-label="Billing type"><button type="button" class="segment active" data-trip="oneway" aria-pressed="true">One-Way</button><button type="button" class="segment" data-trip="roundtrip" aria-pressed="false">Round Trip</button></div></div>
     <div class="field"><label for="city">Starting Location</label>
 <div class="menu-wrap city-wrap">
   <button type="button" id="cityButton" class="menu-btn city-btn">
@@ -161,7 +161,7 @@
 </div>
 <div class="hint" id="cityAddressHint"></div></div>
     <div class="field"><label for="event">Surveillance Event Address</label><input id="event" type="text" placeholder="Enter the Full Event Address" autocomplete="off" /><button class="btn btn-secondary" id="mapsBtn" type="button">Open In Google Maps</button><div class="hint">On Android, this opens a Google Maps directions link using the selected Starting Location and the Surveillance Event Address.</div></div>
-    <div class="field"><label for="distance">Full One-Way Route Distance — Mileage</label><input id="distance" type="number" inputmode="decimal" min="0" step="0.1" placeholder="e.g. 148" /><div class="hint">Get this from Google Maps — route from the starting location to the event address, one way, driving.</div></div>
+    <div class="field"><label for="distance">Full One-Way Route Distance — Mileage</label><input id="distance" type="number" inputmode="decimal" min="0" step="0.1" placeholder="e.g. 148" /><div class="hint">Get this from Google Maps — route from the starting location to the event address, one-way, driving.</div></div>
     <div class="field"><label for="hours">Full One-Way Route Time — Hours</label><input id="hours" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 1" /><div class="hint">Get this from Google Maps — Example: 1 hour → enter 1 in hours.</div></div>
     <div class="field"><label for="minutes">Full One-Way Route Time — Minutes</label><input id="minutes" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="e.g. 45" /><div class="hint">Get this from Google Maps — Example: 45 minutes → enter 45 in minutes.</div></div>
     <button class="btn btn-secondary" id="clearBtn" type="button">Clear Form</button>
@@ -174,7 +174,7 @@
   <div class='modal-card'>
 
     <div class='modal-head'>
-      <h2 style="font-size:1.5rem;">How To Use</h2>
+      <h2 style="font-size:1.25rem;">How To Use</h2>
 
       <button class='icon-btn' id='closeHow' type='button' aria-label='Close how-to page'>
         <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'>
@@ -184,7 +184,7 @@
     </div>
 
     <ol class='steps-list'>
-      <li>Choose One Way or Round Trip.</li>
+      <li>Choose One-Way or Round Trip.</li>
       <li>Select your starting location from the dropdown.</li>
       <li>Enter the surveillance event address.</li>
       <li>Tap <strong>Open In Google Maps</strong> to launch directions.</li>
@@ -392,11 +392,11 @@
     $('billableTime').textContent = fmtDuration(billableMinsOneWay * multiplier);
     $('removedKm').textContent = fmtKm(removedKmOneWay * multiplier);
     $('removedTime').textContent = fmtDuration(removedMinsOneWay * multiplier);
-    $('resultTripLine').textContent = tripType === 'roundtrip' ? 'Round Trip' : 'One Way';
+    $('resultTripLine').textContent = tripType === 'roundtrip' ? 'Round Trip' : 'One-Way';
     $('summaryLine').textContent = 'Enter Values In Trackops Mobile App.';
     $('summaryNote').textContent = distance <= 60
-      ? 'The full route is within 60 km one way. No billable travel applies under the current rule.'
-      : 'The first 60 km one way and the estimated matching travel time have been removed. The remaining values are billable.';
+      ? 'The full route is within 60 km one-way. No billable travel applies under the current rule.'
+      : 'The first 60 km one-way and the estimated matching travel time have been removed. The remaining values are billable.';
 
     resultsSection?.classList.remove('hidden');
     setStatus('Calculation complete.', 'success');
