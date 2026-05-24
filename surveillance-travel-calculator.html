@@ -100,7 +100,7 @@
     <button class='menu-item' id='menuHowBtn' type='button'>How To</button>
   </div>
   <section class="card" aria-labelledby="form-title">
-    <div><h2 id="form-title" class="card-title">Trip Details</h2><p class="card-sub">Select the starting location, enter the surveillance event address, launch Google Maps and verify the one-way hour(s), minute(s) and mileage.</p></div>
+    <div><h2 id="form-title" class="card-title">Trip Details</h2><p class="card-sub">elect the starting location, enter the surveillance event address, launch Google Maps and verify the one-way hour(s), minute(s) and mileage.</p></div>
     <div><div class="seg-label">Billing Type</div><div class="segmented" role="group" aria-label="Billing type"><button type="button" class="segment active" data-trip="oneway" aria-pressed="true">One Way</button><button type="button" class="segment" data-trip="roundtrip" aria-pressed="false">Round Trip</button></div></div>
     <div class="field"><label for="city">Starting Location</label>
 <div class="menu-wrap city-wrap">
@@ -170,8 +170,43 @@
   </section>
   <section class="card hidden" id="resultsSection" aria-labelledby="results-title"><div><h2 id="results-title" class="card-title">Billable Result</h2><p class="card-sub" id="resultTripLine"></p></div><div class="metric-grid"><div class="metric"><small>Billable Surveillance Travel Mileage</small><strong id="billableKm">—</strong></div><div class="metric"><small>Billable Surveillance Travel Hours</small><strong id="billableTime">—</strong></div><div class="metric"><small>Non-Billable Km Removed</small><strong id="removedKm">—</strong></div><div class="metric"><small>Non-Billable Time Removed</small><strong id="removedTime">—</strong></div></div><div class="summary-block"><b id="summaryLine"></b><span id="summaryNote"></span></div></section>
 
-  <div class='modal hidden' id='howModal' aria-hidden='true'><div class='modal-card'><div class='modal-head'><h2>How To Use</h2><button class='icon-btn' id='closeHow' type='button' aria-label='Close how-to page'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M18 6 6 18M6 6l12 12'/></svg></button></div><ol class='steps-list'><li>Choose One Way or Round Trip.</li><li>Select your starting location from the dropdown.</li><li>Enter the surveillance event address.</li><li>Tap <strong>Open In Google Maps</strong> to launch directions.</li><li>Copy the one-way mileage, hour(s) and minute(s) into the fields.</li><li>Tap <strong>Calculate Billing</strong>.</li><li>Enter the returned values in TrackOps Mobile.</li></ol><br><div class='install-hint'><strong>Install App Icon How-To</strong> Open this page in Chrome, tap the three-dot menu, then tap <strong>Add To Home Screen</strong></div></div></div><p class='footer'>Prototype · Investigator Toolbox 2026 · v1.1.7</p>
+  <div class='modal hidden' id='howModal' aria-hidden='true'>
+  <div class='modal-card'>
+
+    <div class='modal-head'>
+      <h2 style="font-size:1.5rem;">How To Use</h2>
+
+      <button class='icon-btn' id='closeHow' type='button' aria-label='Close how-to page'>
+        <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'>
+          <path d='M18 6 6 18M6 6l12 12'/>
+        </svg>
+      </button>
+    </div>
+
+    <ol class='steps-list'>
+      <li>Choose One Way or Round Trip.</li>
+      <li>Select your starting location from the dropdown.</li>
+      <li>Enter the surveillance event address.</li>
+      <li>Tap <strong>Open In Google Maps</strong> to launch directions.</li>
+      <li>Copy the one-way mileage, hour(s) and minute(s) into the fields.</li>
+      <li>Tap <strong>Calculate Billing</strong>.</li>
+      <li>Enter the returned values in TrackOps Mobile.</li>
+    </ol>
+
+    <br>
+
+    <ol class='steps-list'>
+      <li>Open this page in Chrome.</li>
+      <li>Tap the three-dot menu.</li>
+      <li>Tap <strong>Add To Home Screen</strong>.</li>
+    </ol>
+
+  </div>
+</div>
+
+<p class='footer'>Prototype · Investigator Toolbox 2026 · v1.1.7</p>
 </main>
+
 <script>
 (() => {
   const doc = document;
