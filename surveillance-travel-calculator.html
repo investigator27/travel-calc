@@ -87,7 +87,7 @@
       <div class="logo" aria-hidden="true">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16"/><path d="M7 17V7l5-3 5 3v10"/><path d="M9.5 11.5h5"/></svg>
       </div>
-      <div><h1>Investigator Calculator</h1><p>Easy Out of Town Billing</p></div>
+      <div><h1>Investigator Toolbox</h1><p>Extended Travel Time & Distance Calc</p></div>
     </div>
     <button class="icon-btn" type="button" data-menu-toggle aria-label="Open settings menu"><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 6h16M4 12h16M4 18h16'/></svg></button>
   </div>
@@ -166,7 +166,7 @@
   </section>
   <section class="card hidden" id="resultsSection" aria-labelledby="results-title"><div><h2 id="results-title" class="card-title">Billable Result</h2><p class="card-sub" id="resultTripLine"></p></div><div class="metric-grid"><div class="metric"><small>Billable Surveillance Travel Mileage</small><strong id="billableKm">—</strong></div><div class="metric"><small>Billable Surveillance Travel Hours</small><strong id="billableTime">—</strong></div><div class="metric"><small>Non-Billable Km Removed</small><strong id="removedKm">—</strong></div><div class="metric"><small>Non-Billable Time Removed</small><strong id="removedTime">—</strong></div></div><div class="summary-block"><b id="summaryLine"></b><span id="summaryNote"></span></div></section>
 
-  <div class='modal hidden' id='howModal' aria-hidden='true'><div class='modal-card'><div class='modal-head'><h2>How To Use</h2><button class='icon-btn' id='closeHow' type='button' aria-label='Close how-to page'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M18 6 6 18M6 6l12 12'/></svg></button></div><ol class='steps-list'><li>Select your starting location from the dropdown.</li><li>Enter the surveillance event address.</li><li>Tap <strong>Open In Google Maps</strong> to launch directions, or open Google Maps manually.</li><li>Copy the one-way driving distance and time into this page.</li><li>Choose One Way or Round Trip.</li><li>Tap <strong>Calculate Billing</strong>.</li><li>Enter the returned values in TrackOps Mobile.</li></ol><div class='install-hint'><strong>Install App Icon How-To</strong> Open this page in Chrome, tap the three-dot menu, then tap <strong>Add To Home Screen</strong> or <strong>Install App</strong>. If the icon changes, remove the old home-screen shortcut and add it again after the update finishes.</div></div></div><p class='footer'>Prototype · Enter Google Maps route values manually · v1.3</p>
+  <div class='modal hidden' id='howModal' aria-hidden='true'><div class='modal-card'><div class='modal-head'><h2>How To Use</h2><button class='icon-btn' id='closeHow' type='button' aria-label='Close how-to page'><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M18 6 6 18M6 6l12 12'/></svg></button></div><ol class='steps-list'><li>Select your starting location from the dropdown.</li><li>Enter the surveillance event address.</li><li>Tap <strong>Open In Google Maps</strong> to launch directions, or open Google Maps manually.</li><li>Copy the one-way driving distance and time into this page.</li><li>Choose One Way or Round Trip.</li><li>Tap <strong>Calculate Billing</strong>.</li><li>Enter the returned values in TrackOps Mobile.</li></ol><div class='install-hint'><strong>Install App Icon How-To</strong> Open this page in Chrome, tap the three-dot menu, then tap <strong>Add To Home Screen</strong> or <strong>Install App</strong>. If the icon changes, remove the old home-screen shortcut and add it again after the update finishes.</div></div></div><p class='footer'>Prototype · Investigator Toolbox 2026 · v1.1.7</p>
 </main>
 <script>
 (() => {
@@ -347,7 +347,7 @@
     $('removedKm').textContent = fmtKm(removedKmOneWay * multiplier);
     $('removedTime').textContent = fmtDuration(removedMinsOneWay * multiplier);
     $('resultTripLine').textContent = tripType === 'roundtrip' ? 'Round Trip' : 'One Way';
-    $('summaryLine').textContent = 'Enter These Values In TrackOps Mobile.';
+    $('summaryLine').textContent = 'Enter Values In Trackops Mobile App.';
     $('summaryNote').textContent = distance <= 60
       ? 'The full route is within 60 km one way. No billable travel applies under the current rule.'
       : 'The first 60 km one way and the estimated matching travel time have been removed. The remaining values are billable.';
