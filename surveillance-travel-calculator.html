@@ -168,7 +168,7 @@
     <button class="btn btn-primary" id="calculateBtn" type="button">Calculate Billing</button>
     <div class="status hidden" id="statusBox" aria-live="polite" role="status"></div>
   </section>
-  <section class="card hidden" id="resultsSection" aria-labelledby="results-title"><div><h2 id="results-title" class="card-title">Billable Results</h2><p class="card-sub" id="resultTripLine"></p></div><div class="metric-grid"><div class="metric"><small>Billable Travel Mileage</small><strong id="billableKm">—</strong></div><div class="metric"><small>Billable Travel Time</small><strong id="billableTime">—</strong></div><div class="metric"><small>Non-Billable Travel Mileage Removed</small><strong id="removedKm">—</strong></div><div class="metric"><small>Non-Billable Travel Time Removed</small><strong id="removedTime">—</strong></div></div><div class="summary-block"><b id="summaryLine"></b><span id="summaryNote"></span></div></section>
+  <section class="card hidden" id="resultsSection" aria-labelledby="results-title"><div><h2 id="results-title" class="card-title">Billable Results</h2><p class="card-sub" id="resultTripLine"></p></div><div class="metric-grid"><div class="metric"><small>Billable Travel Distance</small><strong id="billableKm">—</strong></div><div class="metric"><small>Billable Travel Time</small><strong id="billableTime">—</strong></div><div class="metric"><small>Non-Billable Travel Distance Removed</small><strong id="removedKm">—</strong></div><div class="metric"><small>Non-Billable Travel Time Removed</small><strong id="removedTime">—</strong></div></div><div class="summary-block"><b id="summaryLine"></b><span id="summaryNote"></span></div></section>
 
   <div class='modal hidden' id='howModal' aria-hidden='true'>
   <div class='modal-card'>
@@ -403,10 +403,10 @@ $('summaryLine').textContent = 'Enter Values In Trackops Mobile App.';
 
 $('summaryNote').textContent =
   distance <= 60
-    ? 'The full route is within 60 km one-way. No billable travel applies under the current rule.'
+    ? 'The full travel distance is within 60 km one-way. No billable travel applies under the current rule.'
     : tripType === 'roundtrip'
       ? 'Round trip selected. The 60 km deduction is applied per direction before billing, and remaining travel is doubled.'
-      : 'The first 60 km one-way and the proportional travel time have been removed. The remaining values are billable.';
+      : 'The first 60 km one-way travel distance and the proportional travel time have been removed. The remaining values are billable.';
 
     resultsSection?.classList.remove('hidden');
     setStatus('Calculation complete.', 'success');
