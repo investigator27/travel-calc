@@ -59,8 +59,10 @@
     .field input:focus,.field select:focus{border-color:var(--color-primary);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--color-primary) 18%,transparent)}
     .hint{font-size:var(--text-xs);color:var(--color-text-muted)}
     .seg-label{font-size:var(--text-sm);font-weight:700;margin-bottom:var(--space-2)}
+
+    /* ==================== SEGMENTED BUTTONS ==================== */
     .segmented{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);background:var(--color-surface-offset);padding:var(--space-2);border-radius:var(--radius-lg)}
-    .segment{min-height:52px;border-radius:var(--radius-md);background:transparent;color:var(--color-text-muted);font-weight:700;font-size:var(--text-sm)}
+    .segment{min-height:52px;border-radius:var(--radius-md);font-weight:700;font-size:var(--text-sm)}
     .segment.active{background:var(--color-primary);color:var(--color-text-inverse);box-shadow:var(--shadow-sm)}
 
     /* ==================== ALL BUTTONS UPDATED ==================== */
@@ -75,25 +77,29 @@
     }
 
     [data-theme="light"] .btn-primary,
-    [data-theme="light"] .btn-secondary {
+    [data-theme="light"] .btn-secondary,
+    [data-theme="light"] .segment {
       background: #1c1c1c;
       color: white;
       box-shadow: var(--shadow-md);
     }
     [data-theme="light"] .btn-primary:active,
-    [data-theme="light"] .btn-secondary:active {
+    [data-theme="light"] .btn-secondary:active,
+    [data-theme="light"] .segment:active {
       background: #333333;
       transform: scale(0.98);
     }
 
     [data-theme="dark"] .btn-primary,
-    [data-theme="dark"] .btn-secondary {
+    [data-theme="dark"] .btn-secondary,
+    [data-theme="dark"] .segment {
       background: white;
       color: #1c1c1c;
       box-shadow: var(--shadow-md);
     }
     [data-theme="dark"] .btn-primary:active,
-    [data-theme="dark"] .btn-secondary:active {
+    [data-theme="dark"] .btn-secondary:active,
+    [data-theme="dark"] .segment:active {
       background: #e5e5e5;
       transform: scale(0.98);
     }
@@ -123,8 +129,7 @@
     .modal-card{width:min(720px,100%);max-height:min(90vh,900px);overflow:auto;background:var(--color-bg);border-radius:var(--radius-xl);border:1px solid var(--color-border);padding:var(--space-5);box-shadow:var(--shadow-md)}
     .modal-head{display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)}
     .install-hint strong{display:block;margin-bottom:0.3rem;color:var(--color-text)}
-    .footer{font-size:var(--text-xs);color:var(--color-text-faint);text-align:center;padding-bottom:var(--space-4)}
-    .hidden{display:none!important}
+    .footer{font-size:var(--text-xs);color:var(--color-text-faint);text-align:center;padding-bottom:var(--space-4)}.hidden{display:none!important}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
   </style>
 </head>
@@ -236,9 +241,11 @@
     <br>
     <h2 style="font-size:1.25rem; margin-bottom:12px;">How To Install App Icon</h2>
     <ol class='steps-list'>
-      <li>Open this page in Chrome.</li>
-      <li>Tap the three-dot menu.</li>
+      <li>Tap the three-dot menu at the top right corner.</li>
       <li>Tap <strong>Add To Home Screen</strong>.</li>
+      <li>Tap <strong>Install</strong>. Then <strong>Install</strong> again.</li>
+      <li>Go to your home screen and swipe up, search <strong>Toolbox</strong></li>
+      <li>Press and hold the app, then select <strong>Add To Home</strong>.</li>
     </ol>
   </div>
 </div>
