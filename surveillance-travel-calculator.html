@@ -603,61 +603,98 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <style>
-[data-theme="light"] .segment,
-[data-theme="light"] .segment.active,
-[data-theme="light"] .segment:active,
-[data-theme="light"] .segment:focus,
-[data-theme="light"] .segment:focus-visible,
-[data-theme="light"] .segment:hover {
-  background: #f1f1f1 !important;
-  color: #2b2b2b !important;
+button, .btn, .btn-primary, .btn-secondary, .segment, .icon-btn, .menu-item, .menu-half, .city-btn, .city-item {
+  -webkit-tap-highlight-color: transparent !important;
 }
-[data-theme="light"] .segment.active {
+button:focus, button:focus-visible,
+.btn:focus, .btn:focus-visible,
+.btn-primary:focus, .btn-primary:focus-visible,
+.btn-secondary:focus, .btn-secondary:focus-visible,
+.segment:focus, .segment:focus-visible,
+.icon-btn:focus, .icon-btn:focus-visible,
+.menu-item:focus, .menu-item:focus-visible,
+.menu-half:focus, .menu-half:focus-visible,
+.city-btn:focus, .city-btn:focus-visible,
+.city-item:focus, .city-item:focus-visible {
+  outline: none !important;
+}
+[data-theme="light"] .segment.active,
+[data-theme="light"] #mapsBtn,
+[data-theme="light"] #calculateBtn,
+[data-theme="light"] .btn-primary {
   background: #000000 !important;
   color: #f9f8f4 !important;
 }
+[data-theme="light"] .segment,
+[data-theme="light"] .btn-secondary,
+[data-theme="light"] .icon-btn,
+[data-theme="light"] .menu-item,
+[data-theme="light"] .menu-half,
+[data-theme="light"] .city-btn,
+[data-theme="light"] .city-item {
+  background: inherit !important;
+}
+[data-theme="light"] .segment.active:hover,
 [data-theme="light"] .segment.active:active,
-[data-theme="light"] .segment.active:hover {
-  background: #1a1a1a !important;
+[data-theme="light"] #mapsBtn:hover,
+[data-theme="light"] #mapsBtn:active,
+[data-theme="light"] #calculateBtn:hover,
+[data-theme="light"] #calculateBtn:active,
+[data-theme="light"] .btn-primary:hover,
+[data-theme="light"] .btn-primary:active,
+[data-theme="light"] .btn-secondary:hover,
+[data-theme="light"] .btn-secondary:active,
+[data-theme="light"] .icon-btn:hover,
+[data-theme="light"] .icon-btn:active,
+[data-theme="light"] .menu-item:hover,
+[data-theme="light"] .menu-item:active,
+[data-theme="light"] .menu-half:hover,
+[data-theme="light"] .menu-half:active,
+[data-theme="light"] .city-btn:hover,
+[data-theme="light"] .city-btn:active,
+[data-theme="light"] .city-item:hover,
+[data-theme="light"] .city-item:active {
+  background: #000000 !important;
+  color: #f9f8f4 !important;
+}
+[data-theme="dark"] .segment.active,
+[data-theme="dark"] #mapsBtn,
+[data-theme="dark"] #calculateBtn,
+[data-theme="dark"] .btn-primary {
+  background: #7a7a7a !important;
+  color: #f9f8f4 !important;
 }
 [data-theme="dark"] .segment,
-[data-theme="dark"] .segment.active,
-[data-theme="dark"] .segment:active,
-[data-theme="dark"] .segment:focus,
-[data-theme="dark"] .segment:focus-visible,
-[data-theme="dark"] .segment:hover {
-  background: #2f2f2f !important;
-  color: #e9e9e9 !important;
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .icon-btn,
+[data-theme="dark"] .menu-item,
+[data-theme="dark"] .menu-half,
+[data-theme="dark"] .city-btn,
+[data-theme="dark"] .city-item {
+  background: inherit !important;
 }
-[data-theme="dark"] .segment.active {
-  background: #7a7a7a !important;
-  color: #f9f8f4 !important;
-}
+[data-theme="dark"] .segment.active:hover,
 [data-theme="dark"] .segment.active:active,
-[data-theme="dark"] .segment.active:hover {
-  background: #9a9a9a !important;
-}
-[data-theme="light"] #mapsBtn,
-[data-theme="light"] #calculateBtn {
-  background: #000000 !important;
-  color: #f9f8f4 !important;
-}
-[data-theme="light"] #mapsBtn:active,
-[data-theme="light"] #calculateBtn:active,
-[data-theme="light"] #mapsBtn:hover,
-[data-theme="light"] #calculateBtn:hover {
-  background: #1a1a1a !important;
-}
-[data-theme="dark"] #mapsBtn,
-[data-theme="dark"] #calculateBtn {
+[data-theme="dark"] #mapsBtn:hover,
+[data-theme="dark"] #mapsBtn:active,
+[data-theme="dark"] #calculateBtn:hover,
+[data-theme="dark"] #calculateBtn:active,
+[data-theme="dark"] .btn-primary:hover,
+[data-theme="dark"] .btn-primary:active,
+[data-theme="dark"] .btn-secondary:hover,
+[data-theme="dark"] .btn-secondary:active,
+[data-theme="dark"] .icon-btn:hover,
+[data-theme="dark"] .icon-btn:active,
+[data-theme="dark"] .menu-item:hover,
+[data-theme="dark"] .menu-item:active,
+[data-theme="dark"] .menu-half:hover,
+[data-theme="dark"] .menu-half:active,
+[data-theme="dark"] .city-btn:hover,
+[data-theme="dark"] .city-btn:active,
+[data-theme="dark"] .city-item:hover,
+[data-theme="dark"] .city-item:active {
   background: #7a7a7a !important;
   color: #f9f8f4 !important;
-}
-[data-theme="dark"] #mapsBtn:active,
-[data-theme="dark"] #calculateBtn:active,
-[data-theme="dark"] #mapsBtn:hover,
-[data-theme="dark"] #calculateBtn:hover {
-  background: #9a9a9a !important;
 }
 </style>
 
