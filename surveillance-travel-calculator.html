@@ -625,14 +625,17 @@ button:focus, button:focus-visible,
 .menu-item:focus, .menu-item:focus-visible,
 .menu-half:focus, .menu-half:focus-visible,
 .city-btn:focus, .city-btn:focus-visible,
-.city-item:focus, .city-item:focus-visible {
+.city-item:focus, .city-item:focus-visible,
+input:focus, input:focus-visible,
+select:focus, select:focus-visible,
+textarea:focus, textarea:focus-visible {
   outline: none !important;
 }
 input:focus, input:focus-visible,
 select:focus, select:focus-visible,
 textarea:focus, textarea:focus-visible {
-  border-color: #7a7a7a !important;
-  box-shadow: 0 0 0 3px rgba(122,122,122,0.18) !important;
+  border-color: var(--color-primary-highlight) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-highlight) 18%, transparent) !important;
 }
 .segment,
 .segment.active,
@@ -673,7 +676,7 @@ textarea:focus, textarea:focus-visible {
 [data-theme="light"] #mapsBtn,
 [data-theme="light"] #calculateBtn,
 [data-theme="light"] .btn-primary {
-  background: #000000 !important;
+  background: var(--color-primary) !important;
   color: #f9f8f4 !important;
 }
 [data-theme="light"] .segment.active:hover,
@@ -684,13 +687,13 @@ textarea:focus, textarea:focus-visible {
 [data-theme="light"] #calculateBtn:active,
 [data-theme="light"] .btn-primary:hover,
 [data-theme="light"] .btn-primary:active {
-  background: #1a1a1a !important;
+  background: var(--color-primary-hover) !important;
 }
 [data-theme="dark"] .segment.active,
 [data-theme="dark"] #mapsBtn,
 [data-theme="dark"] #calculateBtn,
 [data-theme="dark"] .btn-primary {
-  background: #7a7a7a !important;
+  background: var(--color-primary) !important;
   color: #f9f8f4 !important;
 }
 [data-theme="dark"] .segment.active:hover,
@@ -701,7 +704,7 @@ textarea:focus, textarea:focus-visible {
 [data-theme="dark"] #calculateBtn:active,
 [data-theme="dark"] .btn-primary:hover,
 [data-theme="dark"] .btn-primary:active {
-  background: #9a9a9a !important;
+  background: var(--color-primary-hover) !important;
 }
 </style>
 
