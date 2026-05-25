@@ -603,7 +603,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <style>
-button, .btn, .btn-primary, .btn-secondary, .segment, .icon-btn, .menu-item, .menu-half, .city-btn, .city-item {
+:root, [data-theme="light"] {
+  --color-primary: #000000;
+  --color-primary-hover: #1a1a1a;
+  --color-primary-highlight: #7a7a7a;
+}
+[data-theme="dark"] {
+  --color-primary: #7a7a7a;
+  --color-primary-hover: #9a9a9a;
+  --color-primary-highlight: #7a7a7a;
+}
+button, .btn, .btn-primary, .btn-secondary, .segment, .icon-btn, .menu-item, .menu-half, .city-btn, .city-item, input, select, textarea {
   -webkit-tap-highlight-color: transparent !important;
 }
 button:focus, button:focus-visible,
@@ -618,21 +628,53 @@ button:focus, button:focus-visible,
 .city-item:focus, .city-item:focus-visible {
   outline: none !important;
 }
+input:focus, input:focus-visible,
+select:focus, select:focus-visible,
+textarea:focus, textarea:focus-visible {
+  border-color: #7a7a7a !important;
+  box-shadow: 0 0 0 3px rgba(122,122,122,0.18) !important;
+}
+.segment,
+.segment.active,
+.segment:hover,
+.segment:active,
+.segment:focus,
+.segment:focus-visible,
+#mapsBtn,
+#mapsBtn:hover,
+#mapsBtn:active,
+#calculateBtn,
+#calculateBtn:hover,
+#calculateBtn:active,
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:active,
+.btn-secondary,
+.btn-secondary:hover,
+.btn-secondary:active,
+.icon-btn,
+.icon-btn:hover,
+.icon-btn:active,
+.menu-item,
+.menu-item:hover,
+.menu-item:active,
+.menu-half,
+.menu-half:hover,
+.menu-half:active,
+.city-btn,
+.city-btn:hover,
+.city-btn:active,
+.city-item,
+.city-item:hover,
+.city-item:active {
+  transition: none !important;
+}
 [data-theme="light"] .segment.active,
 [data-theme="light"] #mapsBtn,
 [data-theme="light"] #calculateBtn,
 [data-theme="light"] .btn-primary {
   background: #000000 !important;
   color: #f9f8f4 !important;
-}
-[data-theme="light"] .segment,
-[data-theme="light"] .btn-secondary,
-[data-theme="light"] .icon-btn,
-[data-theme="light"] .menu-item,
-[data-theme="light"] .menu-half,
-[data-theme="light"] .city-btn,
-[data-theme="light"] .city-item {
-  background: inherit !important;
 }
 [data-theme="light"] .segment.active:hover,
 [data-theme="light"] .segment.active:active,
@@ -641,21 +683,8 @@ button:focus, button:focus-visible,
 [data-theme="light"] #calculateBtn:hover,
 [data-theme="light"] #calculateBtn:active,
 [data-theme="light"] .btn-primary:hover,
-[data-theme="light"] .btn-primary:active,
-[data-theme="light"] .btn-secondary:hover,
-[data-theme="light"] .btn-secondary:active,
-[data-theme="light"] .icon-btn:hover,
-[data-theme="light"] .icon-btn:active,
-[data-theme="light"] .menu-item:hover,
-[data-theme="light"] .menu-item:active,
-[data-theme="light"] .menu-half:hover,
-[data-theme="light"] .menu-half:active,
-[data-theme="light"] .city-btn:hover,
-[data-theme="light"] .city-btn:active,
-[data-theme="light"] .city-item:hover,
-[data-theme="light"] .city-item:active {
-  background: #000000 !important;
-  color: #f9f8f4 !important;
+[data-theme="light"] .btn-primary:active {
+  background: #1a1a1a !important;
 }
 [data-theme="dark"] .segment.active,
 [data-theme="dark"] #mapsBtn,
@@ -664,15 +693,6 @@ button:focus, button:focus-visible,
   background: #7a7a7a !important;
   color: #f9f8f4 !important;
 }
-[data-theme="dark"] .segment,
-[data-theme="dark"] .btn-secondary,
-[data-theme="dark"] .icon-btn,
-[data-theme="dark"] .menu-item,
-[data-theme="dark"] .menu-half,
-[data-theme="dark"] .city-btn,
-[data-theme="dark"] .city-item {
-  background: inherit !important;
-}
 [data-theme="dark"] .segment.active:hover,
 [data-theme="dark"] .segment.active:active,
 [data-theme="dark"] #mapsBtn:hover,
@@ -680,21 +700,8 @@ button:focus, button:focus-visible,
 [data-theme="dark"] #calculateBtn:hover,
 [data-theme="dark"] #calculateBtn:active,
 [data-theme="dark"] .btn-primary:hover,
-[data-theme="dark"] .btn-primary:active,
-[data-theme="dark"] .btn-secondary:hover,
-[data-theme="dark"] .btn-secondary:active,
-[data-theme="dark"] .icon-btn:hover,
-[data-theme="dark"] .icon-btn:active,
-[data-theme="dark"] .menu-item:hover,
-[data-theme="dark"] .menu-item:active,
-[data-theme="dark"] .menu-half:hover,
-[data-theme="dark"] .menu-half:active,
-[data-theme="dark"] .city-btn:hover,
-[data-theme="dark"] .city-btn:active,
-[data-theme="dark"] .city-item:hover,
-[data-theme="dark"] .city-item:active {
-  background: #7a7a7a !important;
-  color: #f9f8f4 !important;
+[data-theme="dark"] .btn-primary:active {
+  background: #9a9a9a !important;
 }
 </style>
 
