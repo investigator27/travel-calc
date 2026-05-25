@@ -1,14 +1,14 @@
 {
-  "name": "Surveillance Travel Calculator",
-  "short_name": "Travel Calc",
-  "start_url": "/travel-calc/surveillance-travel-calculator.html",
-  "scope": "/travel-calc/",
+  "name": "Investigator Toolbox",
+  "short_name": "Investigator Toolbox",
+  "start_url": "/investigator-toolbox/surveillance-travel-calculator.html",
+  "scope": "/investigator-toolbox/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "description": "Mobile calculator for surveillance travel billing outside the first 60 km.",
   "icons": [
-    { "src": "/travel-calc/assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/travel-calc/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "/investigator-toolbox/assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/investigator-toolbox/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }

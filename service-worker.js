@@ -1,4 +1,4 @@
-const BASE = '/travel-calc/';
+const BASE = '/investigator-toolbox/';
 const CACHE = 'surveillance-travel-pwa-v6';
 
 const ASSETS = [
