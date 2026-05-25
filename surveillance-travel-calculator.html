@@ -388,15 +388,23 @@
     const billableMinsOneWay = Math.max(0, fullMins - removedMinsOneWay);
     const multiplier = tripType === 'roundtrip' ? 2 : 1;
 
-    $('billableKm').textContent = fmtKm(billableKmOneWay * multiplier);
-    $('billableTime').textContent = fmtDuration(billableMinsOneWay * multiplier);
-    $('removedKm').textContent = fmtKm(removedKmOneWay * multiplier);
-    $('removedTime').textContent = fmtDuration(removedMinsOneWay * multiplier);
-    $('resultTripLine').textContent = tripType === 'roundtrip' ? 'Round Trip' : 'One-Way';
-    $('summaryLine').textContent = 'Enter Values In Trackops Mobile App.';
-    $('summaryNote').textContent = distance <= 60
-      ? 'The full route is within 60 km one-way. No billable travel applies under the current rule.'
-      : 'The first 60 km one-way and the estimated matching travel time have been removed. The remaining values are billable.';
+// OUTPUT VALUES
+$('billableKm').textContent = fmtKm(billableKmOneWay * multiplier);
+$('billableTime').textContent = fmtDuration(billableMinsOneWay * multiplier);
+$('removedKm').textContent = fmtKm(removedKmOneWay * multiplier);
+$('removedTime').textContent = fmtDuration(removedMinsOneWay * multiplier);
+
+$('resultTripLine').textContent =
+  tripType === 'roundtrip' ? 'Round Trip' : 'One-Way';
+
+$('summaryLine').textContent = 'Enter Values In Trackops Mobile App.';
+
+$('summaryNote').textContent =
+  distance <= 60
+    ? 'The full route is within 60 km one-way. No billable travel applies under the current rule.'
+    : tripType === 'roundtrip'
+      ? 'Round trip selected. The 60 km deduction is applied per direction before billing, and remaining travel is doubled.'
+      : 'The first 60 km one-way and the proportional travel time have been removed. The remaining values are billable.';
 
     resultsSection?.classList.remove('hidden');
     setStatus('Calculation complete.', 'success');
