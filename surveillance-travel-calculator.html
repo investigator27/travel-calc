@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#4f98a3" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Travel Calc" />
+  <meta name="apple-mobile-web-app-title" content="Toolbox" />
   <title>Investigator Toolbox</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <script>window.__BASE_PATH__ = '/investigator-toolbox/';</script>
@@ -45,7 +45,8 @@
     .app{max-width:680px;margin:0 auto;padding:max(env(safe-area-inset-top),var(--space-4)) var(--space-4) max(env(safe-area-inset-bottom),var(--space-8));display:grid;gap:var(--space-4)}
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
     .brand{display:flex;align-items:center;gap:var(--space-3)}
-    .logo{width:44px;height:44px;border-radius:14px;background:var(--color-surface);border:1px solid color-mix(in srgb,var(--color-text) 10%,transparent);display:grid;place-items:center;box-shadow:var(--shadow-sm);flex-shrink:0}
+    .logo{width:48px;height:48px;border-radius:14px;background:var(--color-surface);border:1px solid color-mix(in srgb,var(--color-text) 10%,transparent);display:grid;place-items:center;box-shadow:var(--shadow-sm);flex-shrink:0;overflow:hidden}
+    .logo img{width:100%;height:100%;object-fit:contain}
     .brand h1{font-size:var(--text-lg);line-height:1.1}
     .brand p{color:var(--color-text-muted);font-size:var(--text-sm)}
     .icon-btn{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--color-surface);border:1px solid color-mix(in srgb,var(--color-text) 10%,transparent);box-shadow:var(--shadow-sm);flex-shrink:0}
@@ -62,40 +63,47 @@
     .segment{min-height:52px;border-radius:var(--radius-md);background:transparent;color:var(--color-text-muted);font-weight:700;font-size:var(--text-sm)}
     .segment.active{background:var(--color-primary);color:var(--color-text-inverse);box-shadow:var(--shadow-sm)}
 
-    /* ==================== UPDATED BUTTON STYLES ==================== */
-    .btn{min-height:54px;padding:0.95rem 1rem;border-radius:var(--radius-lg);font-weight:700;font-size:var(--text-base);width:100%;text-align:center}
+    /* ==================== ALL BUTTONS UPDATED ==================== */
+    .btn{
+      min-height:54px;
+      padding:0.95rem 1rem;
+      border-radius:var(--radius-lg);
+      font-weight:700;
+      font-size:var(--text-base);
+      width:100%;
+      text-align:center;
+    }
 
-    /* Light Mode: Black Button */
-    [data-theme="light"] .btn-primary {
+    [data-theme="light"] .btn-primary,
+    [data-theme="light"] .btn-secondary {
       background: #1c1c1c;
       color: white;
       box-shadow: var(--shadow-md);
     }
-    [data-theme="light"] .btn-primary:active {
+    [data-theme="light"] .btn-primary:active,
+    [data-theme="light"] .btn-secondary:active {
       background: #333333;
       transform: scale(0.98);
     }
 
-    /* Dark Mode: White Button */
-    [data-theme="dark"] .btn-primary {
+    [data-theme="dark"] .btn-primary,
+    [data-theme="dark"] .btn-secondary {
       background: white;
       color: #1c1c1c;
       box-shadow: var(--shadow-md);
     }
-    [data-theme="dark"] .btn-primary:active {
+    [data-theme="dark"] .btn-primary:active,
+    [data-theme="dark"] .btn-secondary:active {
       background: #e5e5e5;
       transform: scale(0.98);
     }
 
-    .btn-secondary{background:var(--color-surface-offset);border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent)}
-    .btn-secondary:hover{background:var(--color-divider)}
-    .btn-secondary:active{transform:scale(0.98)}
-    
-    #mapsBtn{background:var(--color-primary);color:var(--color-text-inverse);box-shadow:var(--shadow-md)}
-    #mapsBtn:hover{background:var(--color-primary-hover)}
-    #mapsBtn:active{background:var(--color-primary-hover);transform:scale(0.98)}
-    #mapsBtn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px;border-radius:var(--radius-sm)}
-    
+    #mapsBtn {
+      background: inherit;
+      color: inherit;
+      box-shadow: var(--shadow-md);
+    }
+
     .status{font-size:var(--text-sm);padding:0.9rem 1rem;border-radius:var(--radius-lg);background:var(--color-surface-offset);color:var(--color-text-muted);display:none}
     .status.show{display:block}.status.error{background:color-mix(in srgb,var(--color-error) 10%,var(--color-surface));color:var(--color-error)}.status.success{background:color-mix(in srgb,var(--color-success) 12%,var(--color-surface));color:var(--color-success)}
     .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
@@ -115,7 +123,8 @@
     .modal-card{width:min(720px,100%);max-height:min(90vh,900px);overflow:auto;background:var(--color-bg);border-radius:var(--radius-xl);border:1px solid var(--color-border);padding:var(--space-5);box-shadow:var(--shadow-md)}
     .modal-head{display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)}
     .install-hint strong{display:block;margin-bottom:0.3rem;color:var(--color-text)}
-    .footer{font-size:var(--text-xs);color:var(--color-text-faint);text-align:center;padding-bottom:var(--space-4)}.hidden{display:none!important}
+    .footer{font-size:var(--text-xs);color:var(--color-text-faint);text-align:center;padding-bottom:var(--space-4)}
+    .hidden{display:none!important}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
   </style>
 </head>
@@ -123,8 +132,8 @@
 <main class="app">
   <div class="topbar">
     <div class="brand">
-      <div class="logo" aria-hidden="true">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16"/><path d="M7 17V7l5-3 5 3v10"/><path d="M9.5 11.5h5"/></svg>
+      <div class="logo">
+        <img src="assets/icon-192.png" alt="Toolbox Icon">
       </div>
       <div><h1>Investigator Toolbox</h1><p>Extended Travel Time & Travel Distance Calculator</p></div>
     </div>
@@ -170,10 +179,28 @@
 
   <select id="city" style="display:none;">
     <option value="">Select Starting Location</option>
-    <!-- All your options here - they are unchanged -->
     <option value="800 Macleod Trail SE, Calgary, AB T2P 2M5">Calgary, AB</option>
     <option value="1 Sir Winston Churchill Square, Edmonton, AB T5J 2R7">Edmonton, AB</option>
-    <!-- ... (I shortened for space, keep all your options) ... -->
+    <option value="800 Robson Street, Vancouver, BC V6Z 3B7">Vancouver, BC</option>
+    <option value="1 Centennial Square, Victoria, BC V8W 1P6">Victoria, BC</option>
+    <option value="1435 Water Street, Kelowna, BC V1Y 1J4">Kelowna, BC</option>
+    <option value="100 Queen Street West, Toronto, ON M5H 2N2">GTA, ON</option>
+    <option value="110 Laurier Avenue West, Ottawa, ON K1P 1J1">Ottawa, ON</option>
+    <option value="300 Dufferin Avenue, London, ON N6A 6G9">London, ON</option>
+    <option value="350 City Hall Square West, Windsor, ON N9A 6S1">Windsor, ON</option>
+    <option value="200 Brady Street, Greater Sudbury, ON P3A 5P3">Sudbury, ON</option>
+    <option value="500 Donald Street East, Thunder Bay, ON P7C 5K4">Thunder Bay, ON</option>
+    <option value="510 Main Street, Winnipeg, MB R3B 1B9">Winnipeg, MB</option>
+    <option value="2476 Victoria Avenue, Regina, SK S4P 3C8">Regina, SK</option>
+    <option value="222 3rd Avenue North, Saskatoon, SK S7K 1M8">Saskatoon, SK</option>
+    <option value="275 Rue Notre-Dame Est, Montreal, QC H2Y 1C6">Montreal, QC</option>
+    <option value="25 Rue Laurier, Gatineau, QC J8X 4C8">Gatineau, QC</option>
+    <option value="5015 Duke Street, Halifax, NS B3J 2T5">Halifax, NS</option>
+    <option value="655 Main Street, Moncton, NB E1C 1E8">Moncton, NB</option>
+    <option value="10 New Gower Street, St. John's, NL A1C 5M2">St. John's, NL</option>
+    <option value="199 Queen Street, Charlottetown, PE C1A 4B1">Charlottetown, PEI</option>
+    <option value="2121 2nd Avenue, Whitehorse, YT Y1A 1C2">Whitehorse, YT</option>
+    <option value="1085 Mivvik Street, Iqaluit, NU X0A 0H0">Iqaluit, NU</option>
   </select>
 </div>
 <div class="hint" id="cityAddressHint"></div></div>
@@ -197,7 +224,6 @@
         </svg>
       </button>
     </div>
-    <!-- Rest of modal content unchanged -->
     <ol class='steps-list'>
       <li>Choose One-Way or Round Trip.</li>
       <li>Select your starting location from the dropdown.</li>
@@ -207,13 +233,19 @@
       <li>Tap <strong>Calculate Billing</strong>.</li>
       <li>Enter the returned values in TrackOps Mobile.</li>
     </ol>
+    <br>
+    <h2 style="font-size:1.25rem; margin-bottom:12px;">How To Install App Icon</h2>
+    <ol class='steps-list'>
+      <li>Open this page in Chrome.</li>
+      <li>Tap the three-dot menu.</li>
+      <li>Tap <strong>Add To Home Screen</strong>.</li>
+    </ol>
   </div>
 </div>
 
 <p class='footer'>Prototype · Investigator Toolbox 2026 · v1.2.0</p>
 </main>
 
-<!-- Your original scripts (unchanged) -->
 <script>
 (() => {
   const doc = document;
