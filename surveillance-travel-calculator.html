@@ -168,7 +168,7 @@
     <button class="btn btn-primary" id="calculateBtn" type="button">Calculate Billing</button>
     <div class="status hidden" id="statusBox" aria-live="polite" role="status"></div>
   </section>
-  <section class="card hidden" id="resultsSection" aria-labelledby="results-title"><div><h2 id="results-title" class="card-title">Billable Results</h2><p class="card-sub" id="resultTripLine"></p></div><div class="metric-grid top-grid"><div class="metric"><small>Travel Hours</small><strong id="billableHours">—</strong></div><div class="metric"><small>Travel Minutes</small><strong id="billableMinutes">—</strong></div><div class="metric"><small>Travel Distance</small><strong id="billableKm">—</strong></div></div><div class="metric-grid bottom-grid"><div class="metric"><small>Non-Billable Travel Time Removed</small><strong id="removedTime">—</strong></div><div class="metric"><small>Non-Billable Travel Distance Removed</small><strong id="removedKm">—</strong></div></div><div class="summary-block"><b id="summaryLine"></b><span id="summaryNote"></span></div></section>
+  <section class="card hidden" id="resultsSection" aria-labelledby="results-title"><div><h2 id="results-title" class="card-title">Billable Results</h2><p class="card-sub" id="resultTripLine"></p></div><div class="metric-grid top-grid"><div class="metric"><small>Billable Travel Hours</small><strong id="billableHours">—</strong></div><div class="metric"><small>Billable Travel Minutes</small><strong id="billableMinutes">—</strong></div><div class="metric"><small>Billable Travel Distance</small><strong id="billableKm">—</strong></div></div><div class="metric-grid bottom-grid"><div class="metric"><small>Non-Billable Travel Time Removed</small><strong id="removedTime">—</strong></div><div class="metric"><small>Non-Billable Travel Distance Removed</small><strong id="removedKm">—</strong></div></div><div class="summary-block"><b id="summaryLine"></b><span id="summaryNote"></span></div></section>
 
   <div class='modal hidden' id='howModal' aria-hidden='true'>
   <div class='modal-card'>
@@ -210,7 +210,7 @@
   </div>
 </div>
 
-<p class='footer'> Alpha (Internal / Closed) · Investigator Toolbox v2.0.5 · © 2026 Mitchell (CIM)</p>
+<p class='footer'> Alpha (Internal / Closed) · Investigator Toolbox v2.0.3 · © 2026 Mitchell (CIM)</p>
 </main>
 
 <script>
@@ -401,7 +401,7 @@ $('removedTime').textContent = fmtDuration(removedMinsOneWay * multiplier);
 $('resultTripLine').textContent =
   tripType === 'roundtrip' ? 'Round Trip' : 'One-Way';
 
-$('summaryLine').textContent = 'Enter Values In Trackops Mobile.';
+$('summaryLine').textContent = 'Enter Values In Trackops Mobile App.';
 
 $('summaryNote').textContent =
   distance <= 60
@@ -489,6 +489,15 @@ $('summaryNote').textContent =
   mapsBtn?.addEventListener('click', launchMaps);
   calculateBtn?.addEventListener('click', calculate);
   clearBtn?.addEventListener('click', clearForm);
+
+  [eventInput, hoursInput, minutesInput, distanceInput].forEach((input) => {
+    input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        calculateBtn?.click();
+      }
+    });
+  });
 
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
