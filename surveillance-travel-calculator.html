@@ -95,6 +95,7 @@
     </div>
     <button class="icon-btn" type="button" data-menu-toggle aria-label="Open settings menu"><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 6h16M4 12h16M4 18h16'/></svg></button>
   </div>
+  <div id='updatePromptHost'></div>
   <div class='menu-panel hidden' id='menuPanel' role='dialog' aria-label='Settings menu'>
     <div id='menuThemeRow' class='menu-row'><button class='menu-item menu-half' id='menuLightBtn' type='button'>Light Mode</button><button class='menu-item menu-half' id='menuDarkBtn' type='button'>Dark Mode</button></div>
     <button class='menu-item' id='menuHowBtn' type='button'>How To Use</button>
@@ -210,7 +211,7 @@
   </div>
 </div>
 
-<p class='footer'> Alpha (Internal / Closed) · Investigator Toolbox v2.0.3 · © 2026 Mitchell (CIM)</p>
+<p class='footer'> Alpha (Internal / Closed) · Investigator Toolbox v2.1.7 · © 2026 Mitchell (CIM)</p>
 </main>
 
 <script>
@@ -250,20 +251,13 @@
   let waitingSW = null;
 
   function showUpdateToast() {
-    const host = document.getElementById('updateBannerHost');
+    const host = document.getElementById('updatePromptHost');
     if (!host) return;
-    host.innerHTML = '<div id="updateToast" style="margin:0 16px 0;padding:14px 16px;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);border-radius:var(--radius-xl);box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div style="font-weight:700;margin-bottom:2px">Update available</div><div id="updateDebug" style="font-size:var(--text-sm);color:var(--color-text-muted)">Tap Update to load the newest version.</div></div><button id="updateNowBtn" class="btn btn-primary" style="width:auto;min-height:44px;padding:0 16px">Update</button></div>';
+    host.innerHTML = '<div id="updateToast" style="margin:0 16px 12px;padding:12px 16px;background:#fff3cd;color:#000;border:2px solid #d39e00;border-radius:var(--radius-xl);box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div style="font-weight:700;margin-bottom:2px">Update available</div><div style="font-size:var(--text-sm)">Tap Update to load the newest version.</div></div><button id="updateNowBtn" class="btn btn-primary" style="width:auto;min-height:44px;padding:0 16px">Update</button></div>';
     document.getElementById('updateNowBtn')?.addEventListener('click', () => {
       if (waitingSW) waitingSW.postMessage({ type: 'SKIP_WAITING' });
       else navigator.serviceWorker.getRegistration().then((reg) => reg?.waiting?.postMessage({ type: 'SKIP_WAITING' }));
-      setTimeout(() => { if (updateToast) updateToast.remove(); updateToast = null; }, 5000);
     });
-  }
-
-  function showVersionBanner() {
-    const host = document.getElementById('updateBannerHost');
-    if (!host || host.querySelector('#versionBanner')) return;
-    host.innerHTML = '<div id="versionBanner" style="margin:0;background:#fff3cd;color:#000;border:2px solid #d39e00;border-radius:var(--radius-xl);box-shadow:var(--shadow-sm);font-size:var(--text-sm);font-weight:700;padding:12px 16px">App version ' + APP_VERSION + '</div>';
   }
 
   function bindWaitingWorker(registration) {
@@ -465,7 +459,6 @@ $('summaryNote').textContent =
   })();
   applyTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
   setTrip('oneway');
-  showVersionBanner();
 
   citySelect?.addEventListener('change', () => {
     cityHint.textContent = citySelect.value ? `Starting Location: ${citySelect.value}` : '';
