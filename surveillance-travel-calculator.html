@@ -95,7 +95,7 @@
     </div>
     <button class="icon-btn" type="button" data-menu-toggle aria-label="Open settings menu"><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 6h16M4 12h16M4 18h16'/></svg></button>
   </div>
-  <div id='updateBannerHost'></div>
+  <div id='updateBannerHost' style='padding:0 16px 8px'></div>
   <div class='menu-panel hidden' id='menuPanel' role='dialog' aria-label='Settings menu'>
     <div id='menuThemeRow' class='menu-row'><button class='menu-item menu-half' id='menuLightBtn' type='button'>Light Mode</button><button class='menu-item menu-half' id='menuDarkBtn' type='button'>Dark Mode</button></div>
     <button class='menu-item' id='menuHowBtn' type='button'>How To Use</button>
@@ -211,7 +211,7 @@
   </div>
 </div>
 
-<p class='footer'> Alpha (Internal / Closed) · Investigator Toolbox v2.1.5 · © 2026 Mitchell (CIM)</p>
+<p class='footer'> Alpha (Internal / Closed) · Investigator Toolbox v2.1.6 · © 2026 Mitchell (CIM)</p>
 </main>
 
 <script>
@@ -234,7 +234,7 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  const APP_VERSION = 'v2.1.5';
+  const APP_VERSION = 'v2.1.6';
 
   const menuToggle = qs('[data-menu-toggle]');
   const menuPanel = $('menuPanel');
@@ -263,7 +263,7 @@
   function showVersionBanner() {
     const host = document.getElementById('updateBannerHost');
     if (!host || host.querySelector('#versionBanner')) return;
-    host.innerHTML = '<div id="versionBanner" style="margin:0 16px 0;padding:10px 16px;background:var(--color-primary-highlight);color:var(--color-text);border:1px solid var(--color-border);border-radius:var(--radius-xl);box-shadow:var(--shadow-sm);font-size:var(--text-sm)">App version ' + APP_VERSION + '</div>';
+    host.innerHTML = '<div id="versionBanner" style="margin:0;background:#fff3cd;color:#000;border:2px solid #d39e00;border-radius:var(--radius-xl);box-shadow:var(--shadow-sm);font-size:var(--text-sm);font-weight:700;padding:12px 16px">App version ' + APP_VERSION + '</div>';
   }
 
   function bindWaitingWorker(registration) {
@@ -465,6 +465,7 @@ $('summaryNote').textContent =
   })();
   applyTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
   setTrip('oneway');
+  showVersionBanner();
 
   citySelect?.addEventListener('change', () => {
     cityHint.textContent = citySelect.value ? `Starting Location: ${citySelect.value}` : '';
