@@ -73,7 +73,7 @@
     #mapsBtn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px;border-radius:var(--radius-sm)}
     .status{font-size:var(--text-sm);padding:0.9rem 1rem;border-radius:var(--radius-lg);background:var(--color-surface-offset);color:var(--color-text-muted);display:none}
     .status.show{display:block}.status.error{background:color-mix(in srgb,var(--color-error) 10%,var(--color-surface));color:var(--color-error)}.status.success{background:color-mix(in srgb,var(--color-success) 12%,var(--color-surface));color:var(--color-success)}
-    .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+    .metric-grid{display:grid;gap:var(--space-3)}.top-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.bottom-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .metric{padding:var(--space-4);background:var(--color-surface-2);border-radius:var(--radius-lg);border:1px solid color-mix(in srgb,var(--color-text) 8%,transparent)}
     .metric small{display:block;font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:0.3rem}
     .metric strong{display:block;font-size:var(--text-lg);font-variant-numeric:tabular-nums lining-nums;line-height:1.1}
@@ -168,7 +168,7 @@
     <button class="btn btn-primary" id="calculateBtn" type="button">Calculate Billing</button>
     <div class="status hidden" id="statusBox" aria-live="polite" role="status"></div>
   </section>
-  <section class="card hidden" id="resultsSection" aria-labelledby="results-title"><div><h2 id="results-title" class="card-title">Billable Results</h2><p class="card-sub" id="resultTripLine"></p></div><div class="metric-grid"><div class="metric"><small>Billable Travel Distance</small><strong id="billableKm">—</strong></div><div class="metric"><small>Billable Travel Time</small><strong id="billableTime">—</strong></div><div class="metric"><small>Non-Billable Travel Distance Removed</small><strong id="removedKm">—</strong></div><div class="metric"><small>Non-Billable Travel Time Removed</small><strong id="removedTime">—</strong></div></div><div class="summary-block"><b id="summaryLine"></b><span id="summaryNote"></span></div></section>
+  <section class="card hidden" id="resultsSection" aria-labelledby="results-title"><div><h2 id="results-title" class="card-title">Billable Results</h2><p class="card-sub" id="resultTripLine"></p></div><div class="metric-grid top-grid"><div class="metric"><small>Billable Travel Hours</small><strong id="billableHours">—</strong></div><div class="metric"><small>Billable Travel Minutes</small><strong id="billableMinutes">—</strong></div><div class="metric"><small>Billable Travel Distance</small><strong id="billableKm">—</strong></div></div><div class="metric-grid bottom-grid"><div class="metric"><small>Non-Billable Travel Time Removed</small><strong id="removedTime">—</strong></div><div class="metric"><small>Non-Billable Travel Distance Removed</small><strong id="removedKm">—</strong></div></div><div class="summary-block"><b id="summaryLine"></b><span id="summaryNote"></span></div></section>
 
   <div class='modal hidden' id='howModal' aria-hidden='true'>
   <div class='modal-card'>
@@ -391,8 +391,10 @@
     const multiplier = tripType === 'roundtrip' ? 2 : 1;
 
 // OUTPUT VALUES
+const billableTotalMins = billableMinsOneWay * multiplier;
+$('billableHours').textContent = String(Math.floor(billableTotalMins / 60));
+$('billableMinutes').textContent = String(Math.round(billableTotalMins % 60)).padStart(2,'0');
 $('billableKm').textContent = fmtKm(billableKmOneWay * multiplier);
-$('billableTime').textContent = fmtDuration(billableMinsOneWay * multiplier);
 $('removedKm').textContent = fmtKm(removedKmOneWay * multiplier);
 $('removedTime').textContent = fmtDuration(removedMinsOneWay * multiplier);
 
