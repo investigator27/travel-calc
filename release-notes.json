@@ -1,26 +1,60 @@
 {
-    "latest":  "v38",
-    "appVersion":  "2.3.3",
-    "highlights":  [
-                       "Clearer in-app update steps: download, install, and up to date messages.",
-                       "What\u0027s New section shows what changed after each update.",
-                       "Hotel Finder searches real hotels near your surveillance address.",
-                       "Improved update testing on your computer before rolling out to the team."
-                   ],
-    "builds":  {
-                   "v38":  {
-                               "intro":  "Here\u0027s what\u0027s included in version 2.3.3.",
-                               "sections":  [
-                                                {
-                                                    "items":  [
-                                                                  "Clearer in-app update steps: download, install, and up to date messages.",
-                                                                  "What\u0027s New section shows what changed after each update.",
-                                                                  "Hotel Finder searches real hotels near your surveillance address.",
-                                                                  "Improved update testing on your computer before rolling out to the team."
-                                                              ],
-                                                    "heading":  "What\u0027s New"
-                                                }
-                                            ]
-                           }
-               }
+  "latest": "v39",
+  "appVersion": "3.0.0",
+  "highlights": [
+    "Hotel Finder now uses live Booking.com listings from the cloud — works on GitHub without running a local server.",
+    "Hotels show distance, price per night (taxes included), and review scores; results respect the ≤ $200/night budget.",
+    "New filters and max-distance control; cleaner email draft and Outlook send on phone and desktop."
+  ],
+  "builds": {
+    "v39": {
+      "intro": "Investigator Toolbox 3.0.0 — Hotel Finder powered by Booking.com.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Searches live Booking.com hotels near the surveillance event (sorted by distance). Works when the app is hosted on GitHub — no local server required for investigators.",
+            "Each result shows distance, approximate price per night including taxes and fees, review score, and review count.",
+            "Opens the correct Booking.com listing for your check-in and check-out dates.",
+            "Only lists hotels at or under the company budget (≤ $200/night incl. tax). If nothing is in range within your chosen distance, the app shows the nearest options beyond that radius.",
+            "New Max Distance From Event picker (5, 10, 25, or 50 km).",
+            "Amenity toggles: Free breakfast, Free parking, Free cancellation, and Hotels & motels only (excludes vacation rentals and chalets).",
+            "Removed duplicate address preview fields; search clears old results when you run a new search.",
+            "Status messages scroll into view when something is missing before send (e.g. email not entered)."
+          ]
+        },
+        {
+          "heading": "Email request",
+          "items": [
+            "Reformatted hotel request email (hotel name, rate, Booking.com link, client billed, optional Trackops case number).",
+            "Send Email opens Outlook on desktop and the Outlook app on iPhone/Android when available.",
+            "Removed investigator name block from the draft; your email is still used for CC.",
+            "Admin recipients are configured in the app (Operations Admin, Scheduling Admin)."
+          ]
+        },
+        {
+          "heading": "Other",
+          "items": [
+            "Header subtitle updated to Resources for Investigator.",
+            "Hotels Clear Form button matches the calculator styling.",
+            "Hard refresh after update recommended (Ctrl+Shift+R) if the Hotel tab looks unchanged."
+          ]
+        }
+      ]
+    },
+    "v38": {
+      "intro": "Here's what was included in build v38.",
+      "sections": [
+        {
+          "heading": "What's New",
+          "items": [
+            "Clearer in-app update steps: download, install, and up to date messages.",
+            "What's New section shows what changed after each update.",
+            "Initial Hotel Finder integration.",
+            "Improved update testing on your computer before rolling out to the team."
+          ]
+        }
+      ]
+    }
+  }
 }
