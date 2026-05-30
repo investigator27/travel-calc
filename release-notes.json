@@ -1,12 +1,52 @@
 {
-  "latest": "v51",
-  "appVersion": "3.2.2",
+  "latest": "v53",
+  "appVersion": "3.3.1",
   "highlights": [
-    "Tab bar matches app width on desktop (680px column), not full browser width.",
-    "Layout: centered flex column — header, scrollable content, tab bar.",
-    "Upload v51 to GitHub."
+    "ChatGPT-style Settings: full app sheet slides up with bubbled sections and drill-down pages.",
+    "Personalization: theme and font size with toggle switches; Back animates pages in/out.",
+    "Upload v53 to GitHub."
   ],
   "builds": {
+    "v53": {
+      "intro": "Investigator Toolbox 3.3.1 — Settings redesign.",
+      "sections": [
+        {
+          "heading": "Settings",
+          "items": [
+            "Menu opens a full-height settings sheet (same width as the app) that slides up from the bottom.",
+            "App Settings → Personalization: System / Light / Dark and Standard / Large font toggles.",
+            "How to Use guides and Developer tab controls use the same bubbled list + slide navigation."
+          ]
+        }
+      ]
+    },
+    "v52": {
+      "intro": "Investigator Toolbox 3.3.0 — Settings, Developer tab control, layout.",
+      "sections": [
+        {
+          "heading": "Settings",
+          "items": [
+            "Menu opens a full Settings window with General (appearance, font size, updates) and How to Use (Calculator, Hotels, Camera, Install icon).",
+            "Software update banners and Check for updates live under Settings → Software update.",
+            "Developer: enter password to enable/disable Hotels, Requests, and Camera tabs for users."
+          ]
+        },
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Removed Cloudflare team access code gate — hotel search works without unlock panel.",
+            "Redeploy booking-worker-49 on Cloudflare (removes BOOKING_ACCESS_TOKEN requirement)."
+          ]
+        },
+        {
+          "heading": "Layout",
+          "items": [
+            "App shell uses CSS grid (header, scrollable content, tab bar) at 100dvh inside a 680px column.",
+            "Bottom tab bar stays visible on desktop and installed PWA."
+          ]
+        }
+      ]
+    },
     "v51": {
       "intro": "Investigator Toolbox 3.2.2 — Tab bar width and layout.",
       "sections": [
