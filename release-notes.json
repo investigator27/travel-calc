@@ -1,21 +1,31 @@
 {
-  "latest": "v62",
-  "appVersion": "3.4.0",
+  "latest": "v63",
+  "appVersion": "3.4.1",
   "highlights": [
-    "Hotel Finder: search at your GPS location on site, or by city/town only — full event street address is not sent to search.",
-    "Settings: default hotel search location (GPS vs city/town)."
+    "Hotel Finder: GPS only — be on site, allow location when prompted. Calculator address is not used for search."
   ],
   "builds": {
-    "v62": {
-      "intro": "Investigator Toolbox 3.4.0 — Hotel Finder location privacy.",
+    "v63": {
+      "intro": "Investigator Toolbox 3.4.1 — Hotel Finder GPS-only fix.",
       "sections": [
         {
           "heading": "Hotel Finder",
           "items": [
-            "At surveillance location (GPS): use only when you are on site; phone location drives search.",
-            "City or town of event: uses city and province from Calculator locally; street address stays on device.",
-            "Booking search receives city/region text and coordinates only — not the full surveillance street address.",
-            "Settings → Personalization → Hotel search: choose the default mode."
+            "Search uses your phone GPS only — must be at the surveillance location.",
+            "Tap Search Hotels; your browser will ask for location permission.",
+            "Calculator event address is not used. Only coordinates and nearest city go to search.",
+            "Open the app via https (GitHub Pages or installed PWA), not a file:// link."
+          ]
+        }
+      ]
+    },
+    "v62": {
+      "intro": "Investigator Toolbox 3.4.0 — Hotel Finder location (superseded by v63 GPS-only).",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Replaced in v3.4.1 with GPS-only search."
           ]
         }
       ]

@@ -874,39 +874,17 @@
       <section class="card" aria-labelledby="hotel-title">
         <div>
           <h2 id="hotel-title" class="card-title">Hotel Finder</h2>
-          <p class="card-sub">Booking.com hotels near the surveillance area. Only city or your on-site location is sent to search — not the full event street address.</p>
+          <p class="card-sub">Hotels near you on site. Tap Search and allow location when asked — Calculator addresses are not used.</p>
+        </div>
+
+        <div class="install-hint hotel-location-at-event-hint" role="note">
+          <strong>On site only</strong>
+          <span>Be at the surveillance location before searching. Your browser will ask for location permission the first time. Only map coordinates and nearest city go to search — not a street address.</span>
         </div>
 
         <div class="field">
-          <label for="hotelLocationModeBtn">Search location</label>
-          <div class="menu-wrap city-wrap">
-            <button type="button" id="hotelLocationModeBtn" class="city-btn" aria-expanded="false" aria-haspopup="listbox">
-              <span id="hotelLocationModeLabel">At surveillance location (GPS)</span>
-            </button>
-            <div id="hotelLocationModeDrop" class="menu-panel city-panel" hidden role="listbox">
-              <button type="button" class="menu-item city-item" data-picker-value="at-event">At surveillance location (GPS)</button>
-              <button type="button" class="menu-item city-item" data-picker-value="city-town">City or town of event</button>
-            </div>
-            <select id="hotelLocationMode" hidden aria-hidden="true">
-              <option value="at-event" selected>At surveillance location (GPS)</option>
-              <option value="city-town">City or town of event</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="install-hint hotel-location-at-event-hint" id="hotelAtEventHint" role="note">
-          <strong>At surveillance location</strong>
-          <span>Only use this when you are physically at the surveillance site. Your phone location is used for search; the street address from Calculator is not sent.</span>
-        </div>
-
-        <div class="install-hint hidden hotel-location-city-hint" id="hotelCityTownHint" role="note">
-          <strong>City or town of event</strong>
-          <span>Uses the city and province from the Calculator event address (or starting location). The street address stays on this device only.</span>
-        </div>
-
-        <div class="field">
-          <span class="field-label-static">Search area preview</span>
-          <p class="hint hotel-search-area-preview" id="hotelSearchAreaPreview">Add a surveillance event address on the Calculator tab (with province, e.g. ON or BC).</p>
+          <span class="field-label-static">Search area</span>
+          <p class="hint hotel-search-area-preview has-value" id="hotelSearchAreaPreview">Tap Search Hotels — your browser will request location access.</p>
         </div>
 
         <div class="hotel-form-grid hotel-form-grid--dates">
@@ -1162,18 +1140,6 @@
               <label class="settings-switch"><input type="checkbox" data-font-switch="large" aria-label="Large font size" /><span class="settings-switch__track"></span></label>
             </div>
           </div>
-          <h2 class="settings-section-title">Hotel search</h2>
-          <p class="settings-body-text" style="padding:0 var(--space-4) var(--space-2);margin:0">Default when you open Hotel Finder. You can change it on each search.</p>
-          <div class="settings-group" role="group" aria-label="Default hotel search location">
-            <div class="settings-row settings-row--toggle">
-              <span class="settings-row__label">At surveillance location (GPS)</span>
-              <label class="settings-switch"><input type="checkbox" data-hotel-location-switch="at-event" aria-label="Default at surveillance location" /><span class="settings-switch__track"></span></label>
-            </div>
-            <div class="settings-row settings-row--toggle">
-              <span class="settings-row__label">City or town of event</span>
-              <label class="settings-switch"><input type="checkbox" data-hotel-location-switch="city-town" aria-label="Default city or town of event" /><span class="settings-switch__track"></span></label>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1303,8 +1269,7 @@
           <div class="settings-group">
             <div class="settings-body-text">
               <ol class="steps-list">
-                <li>Choose <strong>At surveillance location (GPS)</strong> only when you are on site, or <strong>City or town of event</strong> when planning from elsewhere.</li>
-                <li>Enter the event address on the <strong>Calculator</strong> tab first (used locally for city; street address is not sent to search).</li>
+                <li>Be at the surveillance location. Tap <strong>Search Hotels</strong> and <strong>allow location</strong> when your browser asks.</li>
                 <li>Set check-in and check-out dates.</li>
                 <li>Tap <strong>Search Hotels</strong> — results come from Booking.com (~30 seconds).</li>
                 <li>Confirm breakfast, parking, and cancellation on each hotel’s Booking.com link.</li>
@@ -1458,8 +1423,8 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  const BUNDLED_APP_VERSION = '3.4.0';
-  const BUNDLED_PWA_CACHE_VERSION = 'v62';
+  const BUNDLED_APP_VERSION = '3.4.1';
+  const BUNDLED_PWA_CACHE_VERSION = 'v63';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -2586,33 +2551,6 @@
     });
   }
 
-  const HOTEL_LOCATION_MODE_KEY = 'travelCalcHotelLocationMode';
-  const HOTEL_LOCATION_LABELS = {
-    'at-event': 'At surveillance location (GPS)',
-    'city-town': 'City or town of event',
-  };
-
-  function getDefaultHotelLocationMode() {
-    try {
-      const saved = localStorage.getItem(HOTEL_LOCATION_MODE_KEY);
-      if (saved === 'city-town' || saved === 'at-event') return saved;
-    } catch {}
-    return 'at-event';
-  }
-
-  function applyHotelLocationMode(mode) {
-    const pref = mode === 'city-town' ? 'city-town' : 'at-event';
-    try { localStorage.setItem(HOTEL_LOCATION_MODE_KEY, pref); } catch {}
-    syncHotelLocationSwitchUi(pref);
-    if (window.HotelFinder?.applyLocationModeUi) window.HotelFinder.applyLocationModeUi(pref);
-  }
-
-  function syncHotelLocationSwitchUi(pref) {
-    qsa('[data-hotel-location-switch]').forEach((input) => {
-      input.checked = input.dataset.hotelLocationSwitch === pref;
-    });
-  }
-
   function paintSettingsScreens() {
     if (!settingsStack) return;
     const activeId = settingsNavStack[settingsNavStack.length - 1] || 'root';
@@ -2674,7 +2612,6 @@
     } catch {
       syncFontSwitchUi('normal');
     }
-    syncHotelLocationSwitchUi(getDefaultHotelLocationMode());
     requestAnimationFrame(() => {
       settingsOverlay.classList.add('is-open');
       if (screenId && screenId !== 'root') pushSettingsScreen(screenId);
@@ -2971,15 +2908,6 @@ $('summaryNote').textContent =
         return;
       }
       applyFontSize(input.dataset.fontSwitch || 'normal');
-    });
-  });
-  qsa('[data-hotel-location-switch]').forEach((input) => {
-    input.addEventListener('change', () => {
-      if (!input.checked) {
-        input.checked = true;
-        return;
-      }
-      applyHotelLocationMode(input.dataset.hotelLocationSwitch || 'at-event');
     });
   });
   bindSoftwareUpdateActions();
@@ -3523,10 +3451,7 @@ textarea:focus, textarea:focus-visible {
   const $ = (id) => document.getElementById(id);
 
   const els = {
-    locationMode: $('hotelLocationMode'),
     searchAreaPreview: $('hotelSearchAreaPreview'),
-    atEventHint: $('hotelAtEventHint'),
-    cityTownHint: $('hotelCityTownHint'),
     checkin: $('hotelCheckin'),
     checkout: $('hotelCheckout'),
     matchCount: $('hotelMatchCount'),
@@ -3561,6 +3486,7 @@ textarea:focus, textarea:focus-visible {
   let lastResults = [];
   let lastTaxMeta = null;
   let lastSearchContext = null;
+  let lastSearchGeo = null;
   let geocodeCache = { key: '', result: null };
   const pickerRegistry = [];
 
@@ -3614,18 +3540,11 @@ textarea:focus, textarea:focus-visible {
     const radiusKm = getMaxDistanceKm();
 
     if (phase === 'geocode') {
-      const atEvent = (ctx?.locationMode || getHotelLocationMode()) === 'at-event';
-      return atEvent
-        ? [
-            'Getting your location (on-site only)…',
-            `Searching near you in the ${area} area…`,
-            'Confirming coordinates in Canada…',
-          ]
-        : [
-            `Centering search on ${area}…`,
-            'Looking up city coordinates in Canada…',
-            'Pinning the search area on the map…',
-          ];
+      return [
+        'Allow location if your browser asks…',
+        'Getting your GPS position…',
+        'Confirming area in Canada…',
+      ];
     }
     if (phase === 'retry') {
       return [
@@ -3701,74 +3620,26 @@ textarea:focus, textarea:focus-visible {
     els.status.innerHTML = '';
   }
 
-  function getHotelLocationMode() {
-    const v = els.locationMode?.value;
-    return v === 'city-town' ? 'city-town' : 'at-event';
-  }
-
-  function getLocalCalculatorEventAddress() {
-    return (els.calculatorEvent?.value || '').trim();
-  }
-
-  function parseSearchAreaFromCalculator() {
-    const eventRaw = getLocalCalculatorEventAddress();
-    let parsed = parseCanadianAddress(eventRaw);
-    let areaSource = 'calculator-event';
-    if (!parsed) {
-      const start = (els.calculatorCity?.value || '').trim();
-      parsed = parseCanadianAddress(start);
-      areaSource = 'starting-location';
+  function getGeolocationBlockReason() {
+    if (!window.isSecureContext) {
+      return 'Location needs a secure link (https). Open the installed app or your GitHub Pages URL — not a saved file:// link.';
     }
-    if (!parsed) return null;
-    return {
-      ...parsed,
-      provinceCode: parsed.province,
-      areaSource,
-      locationMode: getHotelLocationMode(),
-    };
-  }
-
-  const HOTEL_LOCATION_LABELS = {
-    'at-event': 'At surveillance location (GPS)',
-    'city-town': 'City or town of event',
-  };
-
-  function getDefaultHotelLocationMode() {
-    try {
-      const saved = localStorage.getItem('travelCalcHotelLocationMode');
-      if (saved === 'city-town' || saved === 'at-event') return saved;
-    } catch {}
-    return 'at-event';
-  }
-
-  function applyLocationModeUi(mode) {
-    const pref = mode === 'city-town' ? 'city-town' : 'at-event';
-    if (els.locationMode) els.locationMode.value = pref;
-    const label = $('hotelLocationModeLabel');
-    if (label) label.textContent = HOTEL_LOCATION_LABELS[pref] || HOTEL_LOCATION_LABELS['at-event'];
-    els.atEventHint?.classList.toggle('hidden', pref !== 'at-event');
-    els.cityTownHint?.classList.toggle('hidden', pref !== 'city-town');
-    refreshSearchAreaPreview();
+    if (!navigator.geolocation) {
+      return 'This browser does not support location.';
+    }
+    return '';
   }
 
   function refreshSearchAreaPreview() {
     const el = els.searchAreaPreview;
     if (!el) return;
-    const ctx = parseSearchAreaFromCalculator();
-    if (!ctx) {
-      el.textContent = 'Add a surveillance event address on the Calculator tab (with province, e.g. ON or BC), or select a starting location.';
-      el.classList.remove('has-value');
+    const ctx = lastSearchContext;
+    if (ctx?.label) {
+      el.textContent = `Last search: near ${ctx.label} (GPS). Tap Search again to refresh your position.`;
+      el.classList.add('has-value');
       return;
     }
-    const mode = getHotelLocationMode();
-    const via = ctx.areaSource === 'starting-location'
-      ? 'starting location (city only)'
-      : 'Calculator event (city only — street stays on this device)';
-    if (mode === 'at-event') {
-      el.textContent = `On site near ${ctx.label} — GPS at search time. Area from ${via}.`;
-    } else {
-      el.textContent = `Search centered on ${ctx.destination} — from ${via}.`;
-    }
+    el.textContent = 'Tap Search Hotels — your browser will ask to use your location. Be at the surveillance site first.';
     el.classList.add('has-value');
   }
 
@@ -4666,7 +4537,7 @@ out body;`;
   }
 
   function resolveHotelSearchContext() {
-    return parseSearchAreaFromCalculator();
+    return lastSearchContext;
   }
 
   async function nominatimReverse(lat, lng) {
@@ -4681,8 +4552,10 @@ out body;`;
     if (!response.ok) return null;
     const hit = await response.json();
     const addr = hit?.address || {};
-    const country = String(addr.country_code || '').toLowerCase();
-    if (country && country !== 'ca') return { outsideCanada: true };
+    const countryCode = String(addr.country_code || '').toLowerCase();
+    const countryName = String(addr.country || '').toLowerCase();
+    const inCanada = countryCode === 'ca' || countryName === 'canada';
+    if ((countryCode || countryName) && !inCanada) return { outsideCanada: true };
 
     const stateRaw = String(addr.state_code || addr.state || '').replace(/\./g, '').trim();
     let provMatch = stateRaw.match(/\b(AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)\b/i);
@@ -4718,7 +4591,9 @@ out body;`;
   function getDevicePosition() {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error('Location is not available on this device.'));
+        const err = new Error('Location is not available on this device.');
+        err.code = 0;
+        reject(err);
         return;
       }
       navigator.geolocation.getCurrentPosition(
@@ -4727,64 +4602,80 @@ out body;`;
           lng: pos.coords.longitude,
           accuracyM: pos.coords.accuracy,
         }),
-        (err) => reject(err || new Error('Could not get your location.')),
-        { enableHighAccuracy: true, timeout: 22000, maximumAge: 90000 }
+        (err) => reject(err || Object.assign(new Error('Could not get your location.'), { code: 2 })),
+        { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
       );
     });
   }
 
-  async function geocodeCityDestination(ctx) {
-    if (!ctx?.destination) return null;
-    const key = `city:${ctx.destination.toLowerCase()}`;
-    if (geocodeCache.key === key) return geocodeCache.result;
+  async function resolveSearchGeo() {
+    const block = getGeolocationBlockReason();
+    if (block) return { ok: false, error: block };
+
+    let position;
     try {
-      const result = await nominatimSearch(ctx.destination);
-      if (result) {
-        geocodeCache = { key, result };
-        return result;
+      position = await getDevicePosition();
+    } catch (err) {
+      const code = Number(err && err.code);
+      if (code === 1) {
+        return {
+          ok: false,
+          error: 'Location permission denied. Allow Location for this website in your browser or phone settings, then tap Search again.',
+        };
       }
-    } catch {}
-    return null;
-  }
-
-  async function resolveSearchGeo(ctx) {
-    if (!ctx) return { ok: false, error: 'Missing search context.' };
-    if (ctx.locationMode === 'at-event') {
-      let position;
-      try {
-        position = await getDevicePosition();
-      } catch (err) {
-        const code = err && err.code;
-        if (code === 1) {
-          return { ok: false, error: 'Location permission denied. Allow location for this site, or switch to City or town of event.' };
-        }
-        return { ok: false, error: 'Could not get your location. Try again on site, or switch to City or town of event.' };
+      if (code === 2) {
+        return {
+          ok: false,
+          error: 'Location unavailable. Turn on Location Services on your device and try again at the surveillance site.',
+        };
       }
-      const reverse = await nominatimReverse(position.lat, position.lng);
-      if (reverse?.outsideCanada) {
-        return { ok: false, error: 'Your location appears to be outside Canada. Use City or town of event if you are planning from abroad.' };
+      if (code === 3) {
+        return {
+          ok: false,
+          error: 'Location timed out. Tap Search again and allow a few seconds after you approve location access.',
+        };
       }
-      const geo = {
-        lat: position.lat,
-        lng: position.lng,
-        displayName: reverse?.displayName || ctx.label,
-        accuracyM: position.accuracyM,
+      return {
+        ok: false,
+        error: 'Could not get your location. Tap Search again — allow location when your browser prompts you.',
       };
-      const searchCtx = { ...ctx };
-      if (reverse?.destination) {
-        searchCtx.destination = reverse.destination;
-        searchCtx.label = reverse.label || ctx.label;
-        searchCtx.province = reverse.province || ctx.province;
-        searchCtx.provinceCode = reverse.province || ctx.provinceCode;
-      }
-      return { ok: true, geo, searchCtx };
     }
 
-    const geo = await geocodeCityDestination(ctx);
-    if (!geo) {
-      return { ok: false, error: `Could not map ${ctx.label}. Check the Calculator event city and province, then try again.` };
+    let reverse = null;
+    try {
+      reverse = await nominatimReverse(position.lat, position.lng);
+    } catch {
+      reverse = null;
     }
-    return { ok: true, geo, searchCtx: ctx };
+    if (reverse?.outsideCanada) {
+      return { ok: false, error: 'Your GPS position is outside Canada. Hotel search is for Canadian surveillance sites only.' };
+    }
+
+    const label = reverse?.label || 'Your location';
+    const destination = reverse?.destination || 'Canada';
+    const provCode = reverse?.province || '';
+
+    if (!Number.isFinite(position.lat) || !Number.isFinite(position.lng)) {
+      return { ok: false, error: 'Could not read GPS coordinates. Try Search again.' };
+    }
+
+    const searchCtx = {
+      label,
+      destination,
+      province: provCode,
+      provinceCode: provCode,
+      locationMode: 'gps',
+    };
+
+    const geo = {
+      lat: position.lat,
+      lng: position.lng,
+      displayName: label,
+      accuracyM: position.accuracyM,
+    };
+
+    geocodeCache = { key: `gps:${geo.lat},${geo.lng}`, result: geo };
+    return { ok: true, geo, searchCtx };
   }
 
   function formatMoney(amount) {
@@ -4935,40 +4826,38 @@ out body;`;
     if (!els.checkin?.value || !els.checkout?.value) return null;
     const nights = calcNights(els.checkin.value, els.checkout.value);
     if (nights === null) return null;
-    const ctx = resolveHotelSearchContext();
-    if (!ctx) return null;
+    const ctx = lastSearchContext;
     return {
       nights,
-      provinceCode: ctx.provinceCode,
-      areaLabel: ctx.label,
-      destination: ctx.destination,
-      locationMode: ctx.locationMode,
+      provinceCode: ctx?.provinceCode || '',
+      areaLabel: ctx?.label || 'Your location',
+      destination: ctx?.destination || '',
     };
   }
 
   function validateSearchInputs() {
-    const ctx = resolveHotelSearchContext();
-    if (!ctx) {
-      setStatus('On the Calculator tab, enter the event address with a Canadian province (e.g. ", ON" or ", BC"), or select a starting location.', 'error');
-      refreshSearchAreaPreview();
+    const geoBlock = getGeolocationBlockReason();
+    if (geoBlock) {
+      setStatus(geoBlock, 'error');
+      scrollToHotelResults();
       return null;
     }
     if (!els.checkin?.value || !els.checkout?.value) {
       setStatus('Choose both check-in and check-out dates.', 'error');
+      scrollToHotelResults();
       return null;
     }
     const nights = calcNights(els.checkin.value, els.checkout.value);
     if (nights === null) {
       setStatus('Check-out must be after check-in.', 'error');
+      scrollToHotelResults();
       return null;
     }
-    refreshSearchAreaPreview();
     return {
       nights,
-      provinceCode: ctx.provinceCode,
-      areaLabel: ctx.label,
-      destination: ctx.destination,
-      locationMode: ctx.locationMode,
+      provinceCode: lastSearchContext?.provinceCode || '',
+      areaLabel: lastSearchContext?.label || 'Your location',
+      destination: lastSearchContext?.destination || '',
     };
   }
 
@@ -5180,11 +5069,11 @@ out body;`;
         scrollToHotelResults();
         return;
       } else if (!geo) {
-        setStatus('Could not map this address. Check your connection and try again.', 'error');
+        setStatus('Could not use your location for this search. Check connection and tap Search again.', 'error');
       } else if (filtersActive) {
         setStatus(`No hotels within ${radiusKm} km matched ${describeActiveFilters()} on Booking.com. Turn off amenity filters to see more nearby options.`, 'error');
       } else {
-        setStatus(`No hotels found within ${radiusKm} km of the surveillance event. Try a different address or widen your dates.`, 'error');
+        setStatus(`No hotels found within ${radiusKm} km of your GPS position. Try different dates or increase max distance.`, 'error');
       }
       scrollToHotelResults();
       return;
@@ -5239,17 +5128,15 @@ out body;`;
     const countLabel = items.length === 1 ? '1 hotel' : `${items.length} hotels`;
     const headline = resultMeta.verifyMode === 'expanded'
       ? `No hotels under budget within ${radiusKm} km — showing the nearest ${countLabel} beyond that, sorted by distance.`
-      : `Found ${countLabel} on Booking.com within ${radiusKm} km of the event, sorted by distance.`;
+      : `Found ${countLabel} on Booking.com within ${radiusKm} km of your location, sorted by distance.`;
     setStatus(headline, 'success');
     scrollToHotelResults();
   }
 
   async function runSearch() {
+    hideStatus();
     const meta = validateSearchInputs();
     if (!meta) return;
-
-    const ctx = resolveHotelSearchContext();
-    lastSearchContext = ctx;
 
     els.searchBtn.disabled = true;
     hideEmailSectionCollapsible();
@@ -5267,7 +5154,7 @@ out body;`;
 
     let geo = null;
     try {
-      const located = await resolveSearchGeo(ctx);
+      const located = await resolveSearchGeo();
       if (!located.ok) {
         stopHotelSearchProgress();
         setStatus(located.error || 'Could not determine search location.', 'error');
@@ -5275,10 +5162,12 @@ out body;`;
         return;
       }
       geo = located.geo;
+      lastSearchGeo = geo;
       lastSearchContext = located.searchCtx;
       meta.provinceCode = located.searchCtx.provinceCode;
       meta.areaLabel = located.searchCtx.label;
       meta.destination = located.searchCtx.destination;
+      refreshSearchAreaPreview();
       startHotelSearchProgress('booking');
       scrollToHotelSearchActivity();
       const ranked = await fetchAndRankHotels(meta, geo);
@@ -5395,7 +5284,6 @@ out body;`;
   }
 
   function clearHotelForm() {
-    persistHotelLocationPreference(getDefaultHotelLocationMode());
     if (els.checkin) els.checkin.value = '';
     if (els.checkout) els.checkout.value = '';
     if (els.matchCount) els.matchCount.value = '5';
@@ -5414,6 +5302,7 @@ out body;`;
     selectedHotel = null;
     lastTaxMeta = null;
     lastSearchContext = null;
+    lastSearchGeo = null;
     geocodeCache = { key: '', result: null };
     if (els.selectedName) {
       els.selectedName.value = '';
@@ -5430,34 +5319,6 @@ out body;`;
     scrollHotelsTabToTop();
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
-
-  function persistHotelLocationPreference(mode) {
-    const pref = mode === 'city-town' ? 'city-town' : 'at-event';
-    applyLocationModeUi(pref);
-    try { localStorage.setItem('travelCalcHotelLocationMode', pref); } catch {}
-    document.querySelectorAll('[data-hotel-location-switch]').forEach((input) => {
-      input.checked = input.dataset.hotelLocationSwitch === pref;
-    });
-    geocodeCache = { key: '', result: null };
-  }
-
-  function onHotelLocationModeChange() {
-    persistHotelLocationPreference(getHotelLocationMode());
-    refreshEmailDraft();
-  }
-
-  els.calculatorEvent?.addEventListener('input', () => {
-    geocodeCache = { key: '', result: null };
-    refreshSearchAreaPreview();
-  });
-  els.calculatorEvent?.addEventListener('change', () => {
-    geocodeCache = { key: '', result: null };
-    refreshSearchAreaPreview();
-  });
-  els.calculatorCity?.addEventListener('change', () => {
-    geocodeCache = { key: '', result: null };
-    refreshSearchAreaPreview();
-  });
 
   [els.checkin, els.checkout, els.trackopsCase].forEach((el) => {
     el?.addEventListener('input', refreshEmailDraft);
@@ -5515,7 +5376,7 @@ out body;`;
     if (!meta) return;
     if (button.dataset.action === 'view') {
       const ctx = lastSearchContext || resolveHotelSearchContext();
-      const geo = meta.geo || geocodeCache.result;
+      const geo = lastSearchGeo || geocodeCache.result;
       const listingUrl = buildHotelListingUrl(hotel)
         || (ctx ? buildBookingAreaSearchUrl(ctx, geo) : '');
       if (!listingUrl) {
@@ -5546,14 +5407,6 @@ out body;`;
 
   buildRecipientPicker();
   loadInvestigatorProfile();
-
-  initPicker({
-    button: $('hotelLocationModeBtn'),
-    panel: $('hotelLocationModeDrop'),
-    hidden: els.locationMode,
-    label: $('hotelLocationModeLabel'),
-    onChange: onHotelLocationModeChange,
-  });
 
   initPicker({
     button: $('hotelMatchCountBtn'),
@@ -5596,13 +5449,12 @@ out body;`;
 
   hideEmailSectionCollapsible();
 
-  applyLocationModeUi(getDefaultHotelLocationMode());
   syncClientBilledField();
   setEmailActionsEnabled(false);
 
   refreshSearchAreaPreview();
 
-  window.HotelFinder = { applyLocationModeUi, refreshSearchAreaPreview };
+  window.HotelFinder = { refreshSearchAreaPreview };
 })();
 </script>
 
