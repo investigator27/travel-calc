@@ -1427,8 +1427,8 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  const BUNDLED_APP_VERSION = '3.5.0';
-  const BUNDLED_PWA_CACHE_VERSION = 'v72';
+  const BUNDLED_APP_VERSION = '3.5.1';
+  const BUNDLED_PWA_CACHE_VERSION = 'v73';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -4055,11 +4055,46 @@ textarea:focus, textarea:focus-visible {
     return u.toString();
   }
 
-  function withBookingDates(rawUrl) {
+  function isBookingPropertyUrl(rawUrl) {
+    const base = String(rawUrl || '').trim();
+    if (!base) return false;
+    try {
+      const u = new URL(base.startsWith('http') ? base : `https://www.booking.com${base.startsWith('/') ? base : `/${base}`}`);
+      return /\/hotel\/[a-z]{2}\//i.test(u.pathname) && !/searchresults/i.test(u.pathname);
+    } catch {
+      return false;
+    }
+  }
+
+  /** Deep link to one property page with dates — never a searchresults URL. */
+  function buildBookingPropertyListingUrl(rawUrl) {
     const base = String(rawUrl || '').trim();
     if (!base) return '';
     try {
-      const u = new URL(base);
+      const u = new URL(base.startsWith('http') ? base : `https://www.booking.com${base.startsWith('/') ? base : `/${base}`}`);
+      if (!/\/hotel\/[a-z]{2}\//i.test(u.pathname) || /searchresults/i.test(u.pathname)) return '';
+      let pathname = u.pathname;
+      if (!/\.html?$/i.test(pathname)) pathname = `${pathname.replace(/\/$/, '')}.html`;
+      const out = new URL(`https://www.booking.com${pathname}`);
+      if (els.checkin?.value) out.searchParams.set('checkin', els.checkin.value);
+      if (els.checkout?.value) out.searchParams.set('checkout', els.checkout.value);
+      out.searchParams.set('group_adults', '2');
+      out.searchParams.set('no_rooms', '1');
+      out.searchParams.set('selected_currency', 'CAD');
+      out.searchParams.set('lang', 'en-gb');
+      return out.toString();
+    } catch {
+      return '';
+    }
+  }
+
+  function withBookingDates(rawUrl) {
+    const property = buildBookingPropertyListingUrl(rawUrl);
+    if (property) return property;
+    const base = String(rawUrl || '').trim();
+    if (!base) return '';
+    try {
+      const u = new URL(base.startsWith('http') ? base : `https://www.booking.com${base.startsWith('/') ? base : `/${base}`}`);
       if (els.checkin?.value) u.searchParams.set('checkin', els.checkin.value);
       if (els.checkout?.value) u.searchParams.set('checkout', els.checkout.value);
       u.searchParams.set('group_adults', '2');
@@ -4929,7 +4964,10 @@ out body;`;
   }
 
   function buildHotelListingUrl(hotel) {
-    return String(hotel?.listingUrl || '').trim();
+    const direct = buildBookingPropertyListingUrl(hotel?.bookingPropertyUrl || hotel?.listingUrl || '');
+    if (direct) return direct;
+    const cached = String(hotel?.listingUrl || '').trim();
+    return isBookingPropertyUrl(cached) ? cached : '';
   }
 
   function hideEmailSectionCollapsible() {
@@ -5107,7 +5145,8 @@ out body;`;
         reviewScore: h.reviewScore ? String(h.reviewScore) : '',
         reviewWord: h.reviewWord ? String(h.reviewWord) : '',
         reviewCount: Number.isFinite(Number(h.reviewCount)) ? Number(h.reviewCount) : null,
-        listingUrl: withBookingDates(h.url) || areaSearchUrl,
+        listingUrl: buildBookingPropertyListingUrl(h.url),
+        bookingPropertyUrl: h.url || '',
         lat: null,
         lng: null
       };
@@ -5590,12 +5629,9 @@ out body;`;
     const meta = validateSearchInputs();
     if (!meta) return;
     if (button.dataset.action === 'view') {
-      const ctx = lastSearchContext || resolveHotelSearchContext();
-      const geo = lastSearchGeo || geocodeCache.result;
-      const listingUrl = buildHotelListingUrl(hotel)
-        || (ctx ? buildBookingAreaSearchUrl(ctx, geo) : '');
+      const listingUrl = buildHotelListingUrl(hotel);
       if (!listingUrl) {
-        setStatus('Listing URL not available.', 'error');
+        setStatus('Property page link not available for this hotel. Run Search again after deploying booking-worker-58.', 'error');
         return;
       }
       window.open(listingUrl, '_blank', 'noopener,noreferrer');

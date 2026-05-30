@@ -1,10 +1,23 @@
 {
-  "latest": "v72",
-  "appVersion": "3.5.0",
+  "latest": "v73",
+  "appVersion": "3.5.1",
   "highlights": [
-    "Hotel Finder: amenity filters applied on Booking.com search URL; cleaner search UX."
+    "Hotel Finder: Open on Booking.com goes to the property page, not search results."
   ],
   "builds": {
+    "v73": {
+      "intro": "Investigator Toolbox 3.5.1 — fix Booking property deep links.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Open on Booking.com uses each hotel’s property URL with your dates (not the area search page).",
+            "Worker 58 improves property link extraction from search results.",
+            "Deploy booking-worker-58 plus the three GitHub files."
+          ]
+        }
+      ]
+    },
     "v72": {
       "intro": "Investigator Toolbox 3.5.0 — Hotel search UX and amenity filters.",
       "sections": [
