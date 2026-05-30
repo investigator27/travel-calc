@@ -1,12 +1,24 @@
 {
-  "latest": "v56",
-  "appVersion": "3.3.4",
+  "latest": "v57",
+  "appVersion": "3.3.5",
   "highlights": [
-    "Tab bar locked to visible viewport height (fixes clip after update on Android).",
-    "After Update Now, Software Update reopens with Toolbox is up to date.",
-    "Upload v56 to GitHub."
+    "Settings screen titles match Toolbox Settings size.",
+    "Developer tab locks apply immediately and persist on this device.",
+    "Upload v57 to GitHub."
   ],
   "builds": {
+    "v57": {
+      "intro": "Investigator Toolbox 3.3.5 — Settings titles and tab locks.",
+      "sections": [
+        {
+          "heading": "Settings",
+          "items": [
+            "All drill-down titles use the same size as Toolbox Settings.",
+            "Turn off Allow access switches to lock Hotels, Requests, or Camera on this device."
+          ]
+        }
+      ]
+    },
     "v56": {
       "intro": "Investigator Toolbox 3.3.4 — Viewport and post-update UX fix.",
       "sections": [

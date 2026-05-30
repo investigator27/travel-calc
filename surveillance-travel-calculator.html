@@ -199,8 +199,13 @@
     [data-theme="dark"] .tab-bar-item.active{color:var(--color-text)}
     .tab-bar-item--disabled{
       opacity:.38;
-      pointer-events:none;
+      pointer-events:none!important;
       cursor:not-allowed;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .tab-bar-item--disabled.active{
+      background:transparent;
+      color:var(--color-text-muted);
     }
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
     .brand{display:flex;align-items:center;gap:var(--space-3)}
@@ -436,10 +441,11 @@
     }
     .sw-update-uptodate__icon svg{width:28px;height:28px;color:var(--color-text-muted)}
     .sw-update-uptodate__title{
-      margin:0;
-      font-size:var(--text-xl);
+      margin:0 0 var(--space-2);
+      font-size:var(--text-lg);
       font-weight:700;
-      letter-spacing:-.02em;
+      line-height:1.25;
+      color:var(--color-text);
     }
     .sw-update-uptodate__version{
       margin:0;
@@ -606,18 +612,15 @@
       border-radius:22px;
       box-shadow:var(--shadow-md);
     }
-    .settings-hero__title{
-      margin:0;
+    .settings-hero__title,
+    .settings-screen-title{
+      margin:0 0 var(--space-5);
       font-size:var(--text-lg);
       font-weight:700;
+      line-height:1.25;
       color:var(--color-text);
     }
-    .settings-page-title{
-      margin:0 0 var(--space-5);
-      font-size:var(--text-xl);
-      font-weight:700;
-      letter-spacing:-.02em;
-    }
+    .settings-hero .settings-hero__title{margin-bottom:0}
     .settings-section-title{
       margin:0 0 var(--space-2);
       padding-left:var(--space-1);
@@ -731,6 +734,19 @@
       color:var(--color-text-muted);
     }
     .settings-body-text .steps-list{margin:var(--space-3) 0 0;padding-left:1.25rem}
+    .settings-body-text .steps-list + .steps-list{margin-top:var(--space-4)}
+    .settings-body-text p{margin:0}
+    .settings-body-text p + p{margin-top:var(--space-3)}
+    .settings-body-text strong{color:var(--color-text)}
+    .settings-file-list{
+      margin:var(--space-2) 0 0;
+      padding-left:1.15rem;
+      display:grid;
+      gap:0.35rem;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:var(--text-xs);
+      color:var(--color-text);
+    }
     .settings-update-host{min-height:0;padding:0 var(--space-4) var(--space-3)}
     .settings-update-host .update-banner{margin:0 0 var(--space-3)}
     .settings-field-block{
@@ -1084,7 +1100,7 @@
 
       <div class="settings-screen" data-screen="personalization" aria-hidden="true">
         <div class="settings-scroll">
-          <h1 class="settings-page-title">Personalization</h1>
+          <h1 class="settings-screen-title">Personalization</h1>
           <h2 class="settings-section-title">Theme</h2>
           <div class="settings-group" role="group" aria-label="Theme">
             <div class="settings-row settings-row--toggle">
@@ -1116,7 +1132,7 @@
 
       <div class="settings-screen" data-screen="updates" aria-hidden="true">
         <div class="settings-scroll">
-          <h1 class="settings-page-title">Software Update</h1>
+          <h1 class="settings-screen-title">Software Update</h1>
           <div id="swUpdateRoot" class="sw-update" aria-live="polite">
             <div class="sw-update-checking hidden" id="swUpdateChecking">
               <span class="sw-update-checking__spinner" aria-hidden="true"></span>
@@ -1147,7 +1163,7 @@
               <div class="sw-update-uptodate__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
               </div>
-              <h2 class="sw-update-uptodate__title">Toolbox is up to date</h2>
+              <h2 class="settings-screen-title sw-update-uptodate__title">Toolbox is up to date</h2>
               <p class="sw-update-uptodate__version" id="swUpdateUptodateVersion">—</p>
               <button type="button" class="sw-update-link" id="swUpdateMoreDetails">More Details</button>
             </div>
@@ -1164,7 +1180,7 @@
 
       <div class="settings-screen" data-screen="update-whats-new" aria-hidden="true">
         <div class="settings-scroll">
-          <h1 class="settings-page-title">Version Details</h1>
+          <h1 class="settings-screen-title">Version Details</h1>
           <div class="settings-group sw-whatsnew-card">
             <p class="sw-whatsnew-intro" id="updateWhatsNewIntro"></p>
             <div id="updateWhatsNewBody"></div>
@@ -1174,7 +1190,7 @@
 
       <div class="settings-screen" data-screen="how-menu" aria-hidden="true">
         <div class="settings-scroll">
-          <h1 class="settings-page-title">How to Use</h1>
+          <h1 class="settings-screen-title">How to Use</h1>
           <div class="settings-group">
             <button type="button" class="settings-row settings-row--nav" data-settings-push="how-install">
               <span class="settings-row__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
@@ -1202,7 +1218,7 @@
 
       <div class="settings-screen" data-screen="how-install" aria-hidden="true">
         <div class="settings-scroll">
-          <h1 class="settings-page-title">Install Icon</h1>
+          <h1 class="settings-screen-title">Install Icon</h1>
           <div class="settings-group">
             <div class="settings-body-text">
               <ol class="steps-list">
@@ -1218,7 +1234,7 @@
 
       <div class="settings-screen" data-screen="how-calculator" aria-hidden="true">
         <div class="settings-scroll">
-          <h1 class="settings-page-title">Calculator</h1>
+          <h1 class="settings-screen-title">Calculator</h1>
           <div class="settings-group">
             <div class="settings-body-text">
               <ol class="steps-list">
@@ -1236,7 +1252,7 @@
 
       <div class="settings-screen" data-screen="how-hotels" aria-hidden="true">
         <div class="settings-scroll">
-          <h1 class="settings-page-title">Hotels</h1>
+          <h1 class="settings-screen-title">Hotels</h1>
           <div class="settings-group">
             <div class="settings-body-text">
               <ol class="steps-list">
@@ -1253,7 +1269,7 @@
 
       <div class="settings-screen" data-screen="how-camera" aria-hidden="true">
         <div class="settings-scroll">
-          <h1 class="settings-page-title">Camera</h1>
+          <h1 class="settings-screen-title">Camera</h1>
           <div class="settings-group">
             <p class="settings-body-text">Coming soon — this tab will support field photo workflows.</p>
           </div>
@@ -1262,11 +1278,15 @@
 
       <div class="settings-screen" data-screen="developer" aria-hidden="true">
         <div class="settings-scroll">
-          <h1 class="settings-page-title">Developer</h1>
+          <h1 class="settings-screen-title">Developer</h1>
           <div id="developerGate">
             <div class="settings-group">
+              <div class="settings-body-text">
+                <p>Unlock to <strong>lock tabs on a device</strong> or read <strong>how to publish updates</strong> to GitHub and install them on phones. This area is password-protected.</p>
+              </div>
+            </div>
+            <div class="settings-group">
               <div class="settings-field-block">
-                <p class="hint" style="margin:0">Enter the developer password to control which tabs users can open.</p>
                 <div class="field">
                   <label for="developerPassword">Password</label>
                   <input id="developerPassword" type="password" autocomplete="off" />
@@ -1277,21 +1297,63 @@
             </div>
           </div>
           <div id="developerPanel" class="hidden">
-            <p class="hint" style="padding:0 var(--space-4) var(--space-2);margin:0">Disabled tabs stay visible but cannot be opened. Calculator cannot be disabled.</p>
+            <p class="settings-section-title">1 — Lock tabs on this phone or tablet</p>
             <div class="settings-group">
-              <div class="settings-row settings-row--toggle">
-                <span class="settings-row__label">Hotels tab</span>
-                <label class="settings-switch"><input type="checkbox" id="devTabHotels" checked aria-label="Enable Hotels tab" /><span class="settings-switch__track"></span></label>
+              <div class="settings-body-text">
+                <p><strong>ON</strong> = tab works. <strong>OFF</strong> = tab is locked (grey, cannot open). Calculator is always on.</p>
+                <ol class="steps-list">
+                  <li>Turn <strong>OFF</strong> any “Allow access” switch you want locked.</li>
+                  <li>Confirm locked tabs look faded and do not open.</li>
+                  <li>Tap <strong>Lock developer panel</strong> when finished.</li>
+                </ol>
+                <p>Locks save in this browser only. Uninstalling the app or clearing site data removes locks. Each device must be set up separately.</p>
               </div>
               <div class="settings-row settings-row--toggle">
-                <span class="settings-row__label">Requests tab</span>
-                <label class="settings-switch"><input type="checkbox" id="devTabRequests" checked aria-label="Enable Requests tab" /><span class="settings-switch__track"></span></label>
+                <span class="settings-row__label">Hotels — allow access</span>
+                <label class="settings-switch"><input type="checkbox" id="devTabHotels" checked aria-label="Allow Hotels tab" /><span class="settings-switch__track"></span></label>
               </div>
               <div class="settings-row settings-row--toggle">
-                <span class="settings-row__label">Camera tab</span>
-                <label class="settings-switch"><input type="checkbox" id="devTabCamera" checked aria-label="Enable Camera tab" /><span class="settings-switch__track"></span></label>
+                <span class="settings-row__label">Requests — allow access</span>
+                <label class="settings-switch"><input type="checkbox" id="devTabRequests" checked aria-label="Allow Requests tab" /><span class="settings-switch__track"></span></label>
+              </div>
+              <div class="settings-row settings-row--toggle">
+                <span class="settings-row__label">Camera — allow access</span>
+                <label class="settings-switch"><input type="checkbox" id="devTabCamera" checked aria-label="Allow Camera tab" /><span class="settings-switch__track"></span></label>
               </div>
             </div>
+
+            <p class="settings-section-title">2 — Push a new version to GitHub</p>
+            <div class="settings-group">
+              <div class="settings-body-text">
+                <p>After you change the app on your computer, upload these <strong>three files</strong> to the same folder GitHub Pages uses (site path: <strong id="developerDeployPath">…</strong>):</p>
+                <ul class="settings-file-list">
+                  <li>surveillance-travel-calculator.html</li>
+                  <li>service-worker.js</li>
+                  <li>release-notes.json</li>
+                </ul>
+                <ol class="steps-list">
+                  <li>In each file, bump the version (e.g. <strong>3.3.5</strong>) and build (e.g. <strong>v57</strong>) so they all match.</li>
+                  <li>Commit and push to GitHub (or upload via the GitHub website).</li>
+                  <li>Wait 1–2 minutes for GitHub Pages to finish deploying.</li>
+                </ol>
+                <p>Hotel search uses Cloudflare separately — only redeploy <strong>booking-worker.js</strong> if you changed hotel search on the worker.</p>
+              </div>
+            </div>
+
+            <p class="settings-section-title">3 — Install the update on a phone</p>
+            <div class="settings-group">
+              <div class="settings-body-text">
+                <p>Installed build on this device: <strong id="developerGuideVersion">…</strong></p>
+                <ol class="steps-list">
+                  <li>Open the app (home screen icon or Chrome).</li>
+                  <li><strong>Toolbox Settings</strong> → <strong>Software Update</strong> → <strong>Check for updates</strong>.</li>
+                  <li>If an update appears, tap <strong>Update Now</strong> and wait for the reload.</li>
+                  <li>If it still says up to date but behavior is old: close every tab for the site, reopen, or remove the home-screen app and open the site in Chrome once, then check again.</li>
+                </ol>
+                <p>Tab locks from step 1 are <em>not</em> included in a GitHub update — set locks again on each device after install if needed.</p>
+              </div>
+            </div>
+
             <div class="settings-actions">
               <button type="button" class="btn btn-secondary" id="developerLockBtn">Lock developer panel</button>
             </div>
@@ -1337,12 +1399,12 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  let APP_VERSION = '3.3.4';
+  let APP_VERSION = '3.3.5';
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
     || /[?&]pwa=1(?:&|$)/.test(location.search);
   const DEV_MODE = IS_LOCAL_DEV && !PWA_TEST_MODE;
-  let PWA_CACHE_VERSION = 'v56';
+  let PWA_CACHE_VERSION = 'v57';
   const DEVELOPER_PASSWORD = 'dev1-toolb0x';
   const TAB_VISIBILITY_KEY = 'toolboxTabEnabled';
   const DEV_UNLOCK_KEY = 'toolboxDevUnlocked';
@@ -2504,9 +2566,28 @@
     }
   }
 
+  let tabVisibilityState = null;
+
+  function readDeveloperTabTogglesIntoMap() {
+    const map = getDefaultTabVisibility();
+    const hotels = $('devTabHotels');
+    const requests = $('devTabRequests');
+    const camera = $('devTabCamera');
+    if (hotels) map.hotels = !!hotels.checked;
+    if (requests) map.requests = !!requests.checked;
+    if (camera) map.camera = !!camera.checked;
+    return map;
+  }
+
   function saveTabVisibility(map) {
-    try { localStorage.setItem(TAB_VISIBILITY_KEY, JSON.stringify(map)); } catch {}
-    window.dispatchEvent(new CustomEvent('toolbox-tab-visibility'));
+    tabVisibilityState = { ...getDefaultTabVisibility(), ...map };
+    try { localStorage.setItem(TAB_VISIBILITY_KEY, JSON.stringify(tabVisibilityState)); } catch {}
+    window.ToolboxTabs?.applyVisibility?.(tabVisibilityState);
+    window.dispatchEvent(new CustomEvent('toolbox-tab-visibility', { detail: tabVisibilityState }));
+  }
+
+  function persistTabLocksFromDeveloper() {
+    saveTabVisibility(readDeveloperTabTogglesIntoMap());
   }
 
   function isDeveloperUnlocked() {
@@ -2523,6 +2604,17 @@
     gate?.classList.toggle('hidden', unlocked);
     panel?.classList.toggle('hidden', !unlocked);
     if (!unlocked && $('developerPassword')) $('developerPassword').value = '';
+    if (unlocked) refreshDeveloperGuideLabels();
+  }
+
+  function refreshDeveloperGuideLabels() {
+    const pathEl = $('developerDeployPath');
+    if (pathEl) {
+      const path = (BASE_PATH || '/').replace(/\/$/, '') || '/';
+      pathEl.textContent = path === '/' ? '(site root)' : path;
+    }
+    const verEl = $('developerGuideVersion');
+    if (verEl) verEl.textContent = `${formatAppVersionLabel()} · build ${PWA_CACHE_VERSION}`;
   }
 
   function syncDeveloperTabToggles() {
@@ -2533,6 +2625,7 @@
     if (hotels) hotels.checked = map.hotels !== false;
     if (requests) requests.checked = map.requests !== false;
     if (camera) camera.checked = map.camera !== false;
+    refreshDeveloperGuideLabels();
   }
 
   function setTrip(nextTrip) {
@@ -2748,15 +2841,17 @@ $('summaryNote').textContent =
     setDeveloperUnlocked(true);
     syncDeveloperTabToggles();
   });
-  $('developerLockBtn')?.addEventListener('click', () => setDeveloperUnlocked(false));
+  $('developerLockBtn')?.addEventListener('click', () => {
+    persistTabLocksFromDeveloper();
+    setDeveloperUnlocked(false);
+  });
   ['devTabHotels', 'devTabRequests', 'devTabCamera'].forEach((id) => {
-    $(id)?.addEventListener('change', () => {
-      const map = loadTabVisibility();
-      if (id === 'devTabHotels') map.hotels = $('devTabHotels')?.checked !== false;
-      if (id === 'devTabRequests') map.requests = $('devTabRequests')?.checked !== false;
-      if (id === 'devTabCamera') map.camera = $('devTabCamera')?.checked !== false;
-      saveTabVisibility(map);
-    });
+    const el = $(id);
+    if (!el || el.dataset.tabLockBound) return;
+    el.dataset.tabLockBound = '1';
+    const onToggle = () => persistTabLocksFromDeveloper();
+    el.addEventListener('change', onToggle);
+    el.addEventListener('input', onToggle);
   });
   setDeveloperUnlocked(isDeveloperUnlocked());
   if (isDeveloperUnlocked()) syncDeveloperTabToggles();
@@ -2793,6 +2888,96 @@ $('summaryNote').textContent =
     installBtn.classList.add('hidden');
   });
 
+  function initTabBar() {
+    tabVisibilityState = loadTabVisibility();
+    const tabPanels = qsa('.tab-panel');
+    const tabButtons = qsa('.tab-bar-item');
+    const appContent = $('appContent');
+
+    function isTabEnabled(tabId) {
+      if (tabId === 'calculator') return true;
+      return tabVisibilityState[tabId] !== false;
+    }
+
+    function applyTabBarState() {
+      tabButtons.forEach((btn) => {
+        const tabId = btn.dataset.tab;
+        if (!tabId || tabId === 'calculator') {
+          btn.classList.remove('tab-bar-item--disabled');
+          btn.removeAttribute('aria-disabled');
+          btn.removeAttribute('tabindex');
+          return;
+        }
+        const enabled = isTabEnabled(tabId);
+        btn.classList.toggle('tab-bar-item--disabled', !enabled);
+        if (enabled) {
+          btn.removeAttribute('aria-disabled');
+          btn.removeAttribute('tabindex');
+        } else {
+          btn.setAttribute('aria-disabled', 'true');
+          btn.setAttribute('tabindex', '-1');
+        }
+      });
+    }
+
+    function switchTab(tabId) {
+      if (!isTabEnabled(tabId)) return;
+      tabPanels.forEach((panel) => {
+        const isActive = panel.dataset.tab === tabId;
+        panel.classList.toggle('hidden', !isActive);
+      });
+      tabButtons.forEach((btn) => {
+        const isActive = btn.dataset.tab === tabId;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      if (appContent) appContent.scrollTop = 0;
+      const cityDrop = $('cityDropdown');
+      if (cityDrop) cityDrop.hidden = true;
+      qsa('#tab-hotels .city-panel').forEach((panel) => { panel.hidden = true; });
+      qsa('#tab-hotels .city-btn').forEach((btn) => btn.setAttribute('aria-expanded', 'false'));
+      if (tabId === 'hotels' && window.HotelFinder?.refreshResolvedAddress) {
+        window.HotelFinder.refreshResolvedAddress();
+      }
+    }
+
+    window.ToolboxTabs = {
+      applyVisibility(map) {
+        tabVisibilityState = { ...getDefaultTabVisibility(), ...map };
+        applyTabBarState();
+        const active = qs('.tab-bar-item.active');
+        const activeId = active?.dataset.tab;
+        if (activeId && !isTabEnabled(activeId)) switchTab('calculator');
+      },
+      getVisibility() {
+        return { ...tabVisibilityState };
+      },
+      isTabEnabled,
+      switchTab,
+    };
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tabId = btn.dataset.tab;
+        if (!tabId || btn.classList.contains('tab-bar-item--disabled')) return;
+        switchTab(tabId);
+      });
+    });
+
+    window.addEventListener('toolbox-tab-visibility', (event) => {
+      const map = event.detail || loadTabVisibility();
+      tabVisibilityState = { ...getDefaultTabVisibility(), ...map };
+      applyTabBarState();
+      const active = qs('.tab-bar-item.active');
+      const activeId = active?.dataset.tab;
+      if (activeId && !isTabEnabled(activeId)) switchTab('calculator');
+    });
+
+    applyTabBarState();
+    switchTab('calculator');
+  }
+
+  initTabBar();
   bindViewportHeightSync();
 
   window.addEventListener('load', async () => {
@@ -3107,86 +3292,6 @@ textarea:focus, textarea:focus-visible {
 }
 </style>
 
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const tabPanels = document.querySelectorAll('.tab-panel');
-  const tabButtons = document.querySelectorAll('.tab-bar-item');
-  const appContent = document.getElementById('appContent');
-  const TAB_VISIBILITY_KEY = 'toolboxTabEnabled';
-
-  function loadTabVisibility() {
-    try {
-      const raw = localStorage.getItem(TAB_VISIBILITY_KEY);
-      const defaults = { hotels: true, requests: true, camera: true };
-      if (!raw) return defaults;
-      return { ...defaults, ...JSON.parse(raw) };
-    } catch {
-      return { hotels: true, requests: true, camera: true };
-    }
-  }
-
-  function isTabEnabled(tabId) {
-    if (tabId === 'calculator') return true;
-    const map = loadTabVisibility();
-    return map[tabId] !== false;
-  }
-
-  function applyTabBarState() {
-    tabButtons.forEach((btn) => {
-      const tabId = btn.dataset.tab;
-      if (!tabId || tabId === 'calculator') {
-        btn.classList.remove('tab-bar-item--disabled');
-        btn.removeAttribute('aria-disabled');
-        return;
-      }
-      const enabled = isTabEnabled(tabId);
-      btn.classList.toggle('tab-bar-item--disabled', !enabled);
-      if (enabled) btn.removeAttribute('aria-disabled');
-      else btn.setAttribute('aria-disabled', 'true');
-    });
-  }
-
-  function switchTab(tabId) {
-    if (!isTabEnabled(tabId)) return;
-    tabPanels.forEach((panel) => {
-      const isActive = panel.dataset.tab === tabId;
-      panel.classList.toggle('hidden', !isActive);
-    });
-    tabButtons.forEach((btn) => {
-      const isActive = btn.dataset.tab === tabId;
-      btn.classList.toggle('active', isActive);
-      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    });
-    if (appContent) appContent.scrollTop = 0;
-    const cityDrop = document.getElementById('cityDropdown');
-    if (cityDrop) cityDrop.hidden = true;
-    document.querySelectorAll('#tab-hotels .city-panel').forEach((panel) => { panel.hidden = true; });
-    document.querySelectorAll('#tab-hotels .city-btn').forEach((btn) => btn.setAttribute('aria-expanded', 'false'));
-    if (tabId === 'hotels' && window.HotelFinder?.refreshResolvedAddress) {
-      window.HotelFinder.refreshResolvedAddress();
-    }
-  }
-
-  tabButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const tabId = btn.dataset.tab;
-      if (!tabId || btn.classList.contains('tab-bar-item--disabled')) return;
-      switchTab(tabId);
-    });
-  });
-
-  window.addEventListener('toolbox-tab-visibility', () => {
-    applyTabBarState();
-    const active = document.querySelector('.tab-bar-item.active');
-    const activeId = active?.dataset.tab;
-    if (activeId && !isTabEnabled(activeId)) switchTab('calculator');
-  });
-
-  applyTabBarState();
-  switchTab('calculator');
-});
-</script>
 
 <script>
 (() => {
