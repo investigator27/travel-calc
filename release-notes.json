@@ -1,10 +1,47 @@
 {
-  "latest": "v83",
+  "latest": "v86",
   "appVersion": "3.5.4",
   "highlights": [
-    "Hotel Finder: accurate nightly price (room + tax) and $200/night filter."
+    "Hotel Finder: fix wrong nightly price on result cards."
   ],
   "builds": {
+    "v86": {
+      "intro": "Investigator Toolbox 3.5.4 — stay total + tax line = nightly price.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Reads CAD 398 stay + CAD 52 tax as (398+52)÷nights — e.g. 225/night for 2 nights.",
+            "Deploy booking-worker-71 plus HTML, service-worker, release-notes (v86)."
+          ]
+        }
+      ]
+    },
+    "v85": {
+      "intro": "Investigator Toolbox 3.5.4 — fix displayed nightly price on hotel cards.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Worker sends perNightInclTax; app no longer re-parses tax-only text as the room rate.",
+            "Example: CAD 398 + 52 tax for 2 nights → 225/night on card (over $200 = hidden).",
+            "Deploy booking-worker-70 plus HTML, service-worker, and release-notes (v85)."
+          ]
+        }
+      ]
+    },
+    "v84": {
+      "intro": "Investigator Toolbox 3.5.4 — ScraperAPI credit messaging.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "One Search = one async scrape (~40 credits on your plan). Worker polling does not add credits.",
+            "Deploy booking-worker-69 plus HTML, service-worker, and release-notes (v84)."
+          ]
+        }
+      ]
+    },
     "v83": {
       "intro": "Investigator Toolbox 3.5.4 — fix nightly price and budget filter.",
       "sections": [

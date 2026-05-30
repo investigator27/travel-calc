@@ -1281,7 +1281,7 @@
             <div class="settings-body-text">
               <ol class="steps-list">
                 <li>Open <strong>Current Location</strong> and choose <strong>Current Location</strong> — allow access when your browser or device asks.</li>
-                <li>Set check-in and check-out dates, then tap <strong>Search Hotels</strong> (~30 seconds).</li>
+                <li>Set check-in and check-out dates, then tap <strong>Search Hotels</strong> (~30 s, ~40 ScraperAPI credits per Search).</li>
                 <li>Choose a hotel and send the email draft to admin.</li>
               </ol>
             </div>
@@ -1433,7 +1433,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v83';
+  const BUNDLED_PWA_CACHE_VERSION = 'v86';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3444,6 +3444,8 @@ textarea:focus, textarea:focus-visible {
       ON: 200, PE: 200, QC: 200, SK: 200, YT: 200
     },
     searchRadiusKm: 60,
+    /** One tap Search = one ScraperAPI async job (premium+render). Polling the worker does not add credits. */
+    scraperCreditsPerSearch: 40,
     recipients: [
       { name: 'Continuous Improvment Manager', email: 'mitchell.slaney@intrepid.ca' },
       { name: 'Mitchell Slaney', email: 'mitchell.slaney@intrepid.ca' }
@@ -3530,9 +3532,10 @@ textarea:focus, textarea:focus-visible {
   }
 
   function startHotelSearchProgress(phaseOrMessage) {
+    const credits = Number(HOTEL_CONFIG.scraperCreditsPerSearch) || 40;
     const labels = {
       geocode: 'Getting your location…',
-      booking: 'Searching Booking.com…',
+      booking: `Searching Booking.com… (~${credits} credits, one charge per Search)`,
     };
     const msg = labels[phaseOrMessage] || String(phaseOrMessage || labels.booking);
     showHotelSearchProgress(msg);
@@ -5214,9 +5217,19 @@ out body;`;
     return { pricePerNight, priceTotalStay, priceBasis };
   }
 
-  /** Nightly CAD incl. tax — matches cloudflare/booking-price.js computePerNightInclTax. */
+  /** Use worker-computed nightly price; do not re-parse h.price (tax lines broke this). */
   function parseStayPriceFromHotel(h, nights) {
     const n = Math.max(1, Number(nights) || 1);
+    const workerNightly = Number(h?.perNightInclTax);
+    if (Number.isFinite(workerNightly) && workerNightly > 0) {
+      return {
+        stayValue: Number.isFinite(Number(h?.priceTotalStay)) ? Math.round(Number(h.priceTotalStay)) : null,
+        perNightInclTax: Math.round(workerNightly),
+        priceLabel: String(h?.priceLabel || '').trim() || `CAD ${Math.round(workerNightly)}`,
+        taxesAmbiguous: !!h?.taxesAmbiguous,
+      };
+    }
+
     const taxesIncluded = !!h?.taxesIncluded;
     const taxesText = String(h?.taxesText || '').trim();
     const taxesExtra = taxesIncluded ? 0 : Math.max(0, Number(h?.taxesValue) || 0);
@@ -5227,55 +5240,26 @@ out body;`;
       !(taxesExtra > 0) &&
       /\+|tax|charge|fee/i.test(taxesText);
 
-    let { pricePerNight, priceTotalStay, priceBasis } = reconcileHotelPriceFields(h, n);
+    let pricePerNight = Number.isFinite(Number(h?.pricePerNight)) ? Math.round(Number(h.pricePerNight)) : null;
+    let priceTotalStay = Number.isFinite(Number(h?.priceTotalStay)) ? Math.round(Number(h.priceTotalStay)) : null;
+    let priceBasis = h?.priceBasis || null;
 
-    const taxAmt = Math.max(0, Number(h?.taxesValue) || 0);
-    if (
-      taxAmt > 0 &&
-      pricePerNight != null &&
-      pricePerNight <= taxAmt + 5 &&
-      priceTotalStay == null
-    ) {
+    if (pricePerNight == null && priceTotalStay == null && Number.isFinite(Number(h?.priceValue))) {
+      const legacy = Math.round(Number(h.priceValue));
+      if (h?.priceBasis === 'total_stay') priceTotalStay = legacy;
+      else pricePerNight = legacy;
+    }
+
+    ({ pricePerNight, priceTotalStay, priceBasis } = reconcileHotelPriceFields(
+      { pricePerNight, priceTotalStay, priceBasis, price: '' },
+      n
+    ));
+
+    if (taxesExtra > 0 && pricePerNight != null && pricePerNight <= taxesExtra + 10 && priceTotalStay == null) {
       pricePerNight = null;
     }
-
-    const cardBasis = inferPriceBasisFromLabel(h?.price);
-    const cardPm = h?.price ? String(h.price).match(/([\d][\d,]*(?:\.\d+)?)/) : null;
-    const cardAmount = cardPm ? Math.round(parseFloat(cardPm[1].replace(/,/g, ''))) : null;
-    if (cardAmount != null && Number.isFinite(cardAmount) && cardAmount > 0) {
-      const basis = cardBasis || (n > 1 ? 'total_stay' : 'per_night');
-      if (basis === 'per_night') {
-        pricePerNight = cardAmount;
-        priceTotalStay = null;
-        priceBasis = 'per_night';
-      } else {
-        priceTotalStay = cardAmount;
-        pricePerNight = null;
-        priceBasis = 'total_stay';
-      }
-      ({ pricePerNight, priceTotalStay, priceBasis } = reconcileHotelPriceFields(
-        { pricePerNight, priceTotalStay, priceBasis, price: h?.price },
-        n
-      ));
-    }
-
-    if (pricePerNight == null && priceTotalStay == null) {
-      let legacy = Number.isFinite(Number(h?.priceValue)) ? Math.round(Number(h.priceValue)) : null;
-      if (legacy == null && h?.price) {
-        const pm = String(h.price).match(/([\d][\d,]*(?:\.\d+)?)/);
-        if (pm) legacy = Math.round(parseFloat(pm[1].replace(/,/g, '')));
-      }
-      if (legacy != null) {
-        const basis =
-          priceBasis || inferPriceBasisFromLabel(h?.price) || (n > 1 ? 'total_stay' : 'per_night');
-        if (basis === 'total_stay') priceTotalStay = legacy;
-        else pricePerNight = legacy;
-        ({ pricePerNight, priceTotalStay, priceBasis } = reconcileHotelPriceFields(
-          { pricePerNight, priceTotalStay, priceBasis, price: h?.price },
-          n
-        ));
-      }
-    }
+    if (pricePerNight != null && pricePerNight < 60) pricePerNight = null;
+    if (priceTotalStay != null && priceTotalStay < 60) priceTotalStay = null;
 
     let perNightInclTax = null;
     let priceLabel = '';
@@ -5290,14 +5274,19 @@ out body;`;
       priceLabel = `CAD ${pricePerNight}+ tax`;
     }
 
-    if (perNightInclTax != null && perNightInclTax <= 0) perNightInclTax = null;
-
-    const stayValue =
-      priceTotalStay != null ? priceTotalStay : pricePerNight != null ? pricePerNight * n : null;
+    if (
+      perNightInclTax != null &&
+      perNightInclTax < 75 &&
+      priceTotalStay != null &&
+      priceTotalStay > perNightInclTax * n
+    ) {
+      perNightInclTax = Math.round((priceTotalStay + taxesExtra) / n);
+      if (perNightInclTax > 0) priceLabel = `CAD ${perNightInclTax}`;
+    }
 
     return {
-      stayValue,
-      perNightInclTax,
+      stayValue: priceTotalStay != null ? priceTotalStay : pricePerNight != null ? pricePerNight * n : null,
+      perNightInclTax: perNightInclTax != null && perNightInclTax > 0 ? perNightInclTax : null,
       priceLabel,
       taxesAmbiguous,
     };
