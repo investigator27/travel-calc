@@ -1,11 +1,24 @@
 {
-  "latest": "v55",
-  "appVersion": "3.3.3",
+  "latest": "v56",
+  "appVersion": "3.3.4",
   "highlights": [
-    "Mobile layout: tab bar stays fully visible; icons centered; header blends with background.",
-    "Upload v55 to GitHub."
+    "Tab bar locked to visible viewport height (fixes clip after update on Android).",
+    "After Update Now, Software Update reopens with Toolbox is up to date.",
+    "Upload v56 to GitHub."
   ],
   "builds": {
+    "v56": {
+      "intro": "Investigator Toolbox 3.3.4 — Viewport and post-update UX fix.",
+      "sections": [
+        {
+          "heading": "Fixes",
+          "items": [
+            "App shell height follows the real visible screen so the tab bar is not cut off.",
+            "Completing an update reopens Settings → Software Update with the up-to-date screen."
+          ]
+        }
+      ]
+    },
     "v55": {
       "intro": "Investigator Toolbox 3.3.3 — Mobile tab bar and header polish.",
       "sections": [

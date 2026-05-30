@@ -92,9 +92,8 @@
     html{background:var(--color-bg)}
     body{
       overscroll-behavior:none;
-      min-height:100vh;
-      min-height:100svh;
-      min-height:100dvh;
+      height:100%;
+      overflow:hidden;
     }
     html[data-font-size="large"]{
       --text-xs:clamp(0.875rem,0.82rem + 0.2vw,1rem);
@@ -107,21 +106,23 @@
     a,button,input,select,textarea{transition:background var(--transition),border-color var(--transition),color var(--transition),box-shadow var(--transition)}
     :focus-visible{outline:2px solid var(--color-primary);outline-offset:2px;border-radius:var(--radius-sm)}
     .app-shell{
+      --shell-top:var(--app-vt,0px);
+      position:fixed;
+      top:var(--shell-top);
+      left:50%;
+      transform:translateX(-50%);
       display:grid;
       grid-template-rows:auto minmax(0,1fr) auto;
       grid-template-columns:minmax(0,1fr);
       width:100%;
       max-width:680px;
-      height:100%;
-      min-height:100vh;
-      min-height:100svh;
-      max-height:100vh;
-      max-height:100svh;
-      max-height:100dvh;
-      margin:0 auto;
+      height:var(--app-vh,100%);
+      max-height:var(--app-vh,100%);
+      margin:0;
       background:var(--color-bg);
       overflow:hidden;
       box-sizing:border-box;
+      z-index:1;
     }
     .app-header{
       flex-shrink:0;
@@ -163,15 +164,16 @@
       flex-shrink:0;
       display:grid;
       grid-template-columns:repeat(4,minmax(0,1fr));
-      align-items:stretch;
+      align-items:center;
       gap:var(--space-1);
       width:100%;
       background:var(--color-bg);
       border:none;
       box-shadow:none;
       padding:var(--tab-bar-inner-pad) var(--space-2);
-      padding-bottom:calc(var(--tab-bar-inner-pad) + max(env(safe-area-inset-bottom,0px),10px));
+      padding-bottom:calc(var(--tab-bar-inner-pad) + env(safe-area-inset-bottom,0px));
       box-sizing:border-box;
+      min-height:4.25rem;
     }
     .tab-bar-item{
       display:flex;
@@ -485,7 +487,12 @@
     .update-notes-section + .update-notes-section{margin-top:var(--space-6)}
     .settings-overlay{
       position:fixed;
-      inset:0;
+      top:var(--shell-top,0);
+      left:50%;
+      transform:translateX(-50%);
+      width:100%;
+      max-width:680px;
+      height:var(--app-vh,100%);
       z-index:400;
       display:grid;
       justify-items:center;
@@ -503,7 +510,8 @@
     .settings-sheet{
       width:100%;
       max-width:680px;
-      height:100dvh;
+      height:var(--app-vh,100%);
+      max-height:var(--app-vh,100%);
       display:grid;
       grid-template-rows:auto minmax(0,1fr);
       background:var(--color-bg);
@@ -751,7 +759,7 @@
     <div class="topbar">
       <div class="brand">
         <div class="logo logo-icon" aria-hidden="true"></div>
-        <div><h1>Investigator Toolbox</h1><p>Resources for Investigator</p></div>
+        <div><h1>Investigator Toolbox</h1><p>Testing In Progress</p></div>
       </div>
       <button class="icon-btn" type="button" id="openSettingsBtn" aria-label="Open settings"><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 6h16M4 12h16M4 18h16'/></svg></button>
     </div>
@@ -1329,16 +1337,16 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  let APP_VERSION = '3.3.3';
+  let APP_VERSION = '3.3.4';
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
     || /[?&]pwa=1(?:&|$)/.test(location.search);
   const DEV_MODE = IS_LOCAL_DEV && !PWA_TEST_MODE;
-  let PWA_CACHE_VERSION = 'v55';
-  const DEVELOPER_PASSWORD = 'intrepid-toolbox';
+  let PWA_CACHE_VERSION = 'v56';
+  const DEVELOPER_PASSWORD = 'dev1-toolb0x';
   const TAB_VISIBILITY_KEY = 'toolboxTabEnabled';
   const DEV_UNLOCK_KEY = 'toolboxDevUnlocked';
-  const BASE_PATH = window.__BASE_PATH__ || '/investigator-toolbox/';
+  const BASE_PATH = window.__BASE_PATH__ || '/dev1-toolb0x/';
   const UPDATE_BANNER_TRANSITION_MS = 2400;
   const UPDATE_BANNER_HIDE_MS = UPDATE_BANNER_TRANSITION_MS;
   /** Visible time before slide-up; + transition ≈ 5–6s total for “up to date” banner */
@@ -1657,12 +1665,34 @@
   function finishAppUpdateReload() {
     try {
       sessionStorage.setItem('toolboxJustUpdated', '1');
+      sessionStorage.setItem('toolboxOpenSettingsUpdates', '1');
       sessionStorage.removeItem('toolboxUpdateReady');
       sessionStorage.removeItem('toolboxShowUptodate');
       sessionStorage.removeItem('toolboxReloadBuild');
     } catch {}
     resetDisplayProgress();
     window.location.reload();
+  }
+
+  function syncViewportHeight() {
+    const vv = window.visualViewport;
+    const h = Math.max(320, Math.round(vv?.height || window.innerHeight || 0));
+    const top = Math.max(0, Math.round(vv?.offsetTop || 0));
+    root.style.setProperty('--app-vh', `${h}px`);
+    root.style.setProperty('--app-vt', `${top}px`);
+  }
+
+  function bindViewportHeightSync() {
+    syncViewportHeight();
+    window.addEventListener('resize', syncViewportHeight, { passive: true });
+    window.addEventListener('pageshow', syncViewportHeight, { passive: true });
+    window.addEventListener('orientationchange', () => {
+      window.setTimeout(syncViewportHeight, 150);
+    }, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncViewportHeight, { passive: true });
+      window.visualViewport.addEventListener('scroll', syncViewportHeight, { passive: true });
+    }
   }
 
   function getDisplayUpdateBuild() {
@@ -2763,7 +2793,10 @@ $('summaryNote').textContent =
     installBtn.classList.add('hidden');
   });
 
+  bindViewportHeightSync();
+
   window.addEventListener('load', async () => {
+    syncViewportHeight();
     await syncBuildLabelFromReleaseNotes();
     refreshAllVersionDisplays();
     try {
@@ -2785,6 +2818,12 @@ $('summaryNote').textContent =
         waitingSW = null;
         applyingAppUpdate = false;
         showUptodateBanner();
+        if (sessionStorage.getItem('toolboxOpenSettingsUpdates') === '1') {
+          sessionStorage.removeItem('toolboxOpenSettingsUpdates');
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => openSettings('updates'));
+          });
+        }
       } else if (sessionStorage.getItem('toolboxShowUptodate') === '1') {
         sessionStorage.removeItem('toolboxShowUptodate');
         suppressUpdatePromptOnLoad = true;
