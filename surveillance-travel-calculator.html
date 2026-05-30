@@ -1402,16 +1402,12 @@
           <h2 class="settings-section-title">Reduce motion</h2>
           <div class="settings-group" role="group" aria-label="Reduce motion">
             <div class="settings-row settings-row--toggle">
-              <span class="settings-row__label">Off</span>
-              <label class="settings-switch"><input type="checkbox" data-reduce-motion-switch="off" aria-label="Animations on" /><span class="settings-switch__track"></span></label>
+              <span class="settings-row__label" data-toggle-state-label>Off</span>
+              <label class="settings-switch"><input type="checkbox" id="prefReduceMotionBinary" aria-label="Reduce motion off or on" /><span class="settings-switch__track"></span></label>
             </div>
             <div class="settings-row settings-row--toggle">
               <span class="settings-row__label">System</span>
               <label class="settings-switch"><input type="checkbox" data-reduce-motion-switch="system" aria-label="Follow system reduce motion" /><span class="settings-switch__track"></span></label>
-            </div>
-            <div class="settings-row settings-row--toggle">
-              <span class="settings-row__label">On</span>
-              <label class="settings-switch"><input type="checkbox" data-reduce-motion-switch="on" aria-label="Reduce motion on" /><span class="settings-switch__track"></span></label>
             </div>
           </div>
           <h2 class="settings-section-title">Haptic feedback</h2>
@@ -1643,11 +1639,16 @@
       </div>
 
       <div class="settings-screen" data-screen="developer" aria-hidden="true">
-        <div class="settings-scroll">
-          <div class="settings-page-head">
-            <span class="settings-page-head__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-            <h1 class="settings-screen-title">Developer</h1>
-          </div>
+        <div class="settings-scroll settings-scroll--subpage">
+          <section class="settings-page-intro" aria-labelledby="developer-intro-title">
+            <div class="settings-page-intro__inner">
+              <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+              <div class="settings-page-intro__text">
+                <h1 class="settings-page-intro__title" id="developer-intro-title">Developer</h1>
+                <p class="settings-page-intro__blurb">Password-protected deploy checks, diagnostics, and internal notes.</p>
+              </div>
+            </div>
+          </section>
           <div id="developerGate">
             <div class="settings-group">
               <div class="settings-field-block">
@@ -1684,11 +1685,16 @@
       </div>
 
       <div class="settings-screen" data-screen="developer-tools" aria-hidden="true">
-        <div class="settings-scroll">
-          <div class="settings-page-head">
-            <span class="settings-page-head__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-            <h1 class="settings-screen-title">Developer Tools</h1>
-          </div>
+        <div class="settings-scroll settings-scroll--subpage">
+          <section class="settings-page-intro" aria-labelledby="developer-tools-intro-title">
+            <div class="settings-page-intro__inner">
+              <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+              <div class="settings-page-intro__text">
+                <h1 class="settings-page-intro__title" id="developer-tools-intro-title">Developer Tools</h1>
+                <p class="settings-page-intro__blurb">Live GitHub build, PWA and service worker, hotel worker, and device diagnostics.</p>
+              </div>
+            </div>
+          </section>
           <p class="dev-hint" id="developerToolsHint">Refresh when you open this screen.</p>
 
           <h2 class="dev-section-title">Deploy &amp; versions</h2>
@@ -1729,11 +1735,16 @@
       </div>
 
       <div class="settings-screen" data-screen="developer-notes-menu" aria-hidden="true">
-        <div class="settings-scroll">
-          <div class="settings-page-head">
-            <span class="settings-page-head__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>
-            <h1 class="settings-screen-title">Developer Notes</h1>
-          </div>
+        <div class="settings-scroll settings-scroll--subpage">
+          <section class="settings-page-intro" aria-labelledby="developer-notes-intro-title">
+            <div class="settings-page-intro__inner">
+              <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>
+              <div class="settings-page-intro__text">
+                <h1 class="settings-page-intro__title" id="developer-notes-intro-title">Developer Notes</h1>
+                <p class="settings-page-intro__blurb">Guides for tab policy, GitHub deploy, and app updates.</p>
+              </div>
+            </div>
+          </section>
           <div class="settings-group">
             <button type="button" class="settings-row settings-row--nav" data-settings-push="developer-notes-tabs">
               <span class="settings-row__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
@@ -1755,11 +1766,16 @@
       </div>
 
       <div class="settings-screen" data-screen="developer-notes-tabs" aria-hidden="true">
-        <div class="settings-scroll">
-          <div class="settings-page-head">
-            <span class="settings-page-head__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
-            <h1 class="settings-screen-title">Tab policy</h1>
-          </div>
+        <div class="settings-scroll settings-scroll--subpage">
+          <section class="settings-page-intro" aria-labelledby="developer-notes-tabs-intro-title">
+            <div class="settings-page-intro__inner">
+              <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+              <div class="settings-page-intro__text">
+                <h1 class="settings-page-intro__title" id="developer-notes-tabs-intro-title">Tab policy</h1>
+                <p class="settings-page-intro__blurb">Company-wide tab access in tab-policy.json on GitHub.</p>
+              </div>
+            </div>
+          </section>
           <div class="settings-group">
             <div class="settings-body-text">
               <p>Company-wide tab access is defined in <strong>tab-policy.json</strong> on GitHub. Set <strong>false</strong> to lock a tab; <strong>true</strong> to allow. Calculator is always on.</p>
@@ -1769,11 +1785,16 @@
       </div>
 
       <div class="settings-screen" data-screen="developer-notes-github" aria-hidden="true">
-        <div class="settings-scroll">
-          <div class="settings-page-head">
-            <span class="settings-page-head__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
-            <h1 class="settings-screen-title">Deploy to GitHub</h1>
-          </div>
+        <div class="settings-scroll settings-scroll--subpage">
+          <section class="settings-page-intro" aria-labelledby="developer-notes-github-intro-title">
+            <div class="settings-page-intro__inner">
+              <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+              <div class="settings-page-intro__text">
+                <h1 class="settings-page-intro__title" id="developer-notes-github-intro-title">Deploy to GitHub</h1>
+                <p class="settings-page-intro__blurb">Files to upload to your GitHub Pages folder for each release.</p>
+              </div>
+            </div>
+          </section>
           <div class="settings-group">
             <div class="settings-body-text">
               <p>Upload to your GitHub Pages folder (<strong id="developerDeployPath">…</strong>):</p>
@@ -1791,11 +1812,16 @@
       </div>
 
       <div class="settings-screen" data-screen="developer-notes-updates" aria-hidden="true">
-        <div class="settings-scroll">
-          <div class="settings-page-head">
-            <span class="settings-page-head__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
-            <h1 class="settings-screen-title">App updates</h1>
-          </div>
+        <div class="settings-scroll settings-scroll--subpage">
+          <section class="settings-page-intro" aria-labelledby="developer-notes-updates-intro-title">
+            <div class="settings-page-intro__inner">
+              <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
+              <div class="settings-page-intro__text">
+                <h1 class="settings-page-intro__title" id="developer-notes-updates-intro-title">App updates</h1>
+                <p class="settings-page-intro__blurb">How investigators check for updates and how builds are versioned.</p>
+              </div>
+            </div>
+          </section>
           <div class="settings-group">
             <div class="settings-body-text">
               <p>Build on this device: <strong id="developerGuideVersion">…</strong></p>
@@ -1844,7 +1870,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v112';
+  const BUNDLED_PWA_CACHE_VERSION = 'v113';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3440,6 +3466,11 @@
   }
 
   function syncReduceMotionSwitchUi(pref) {
+    const binary = $('prefReduceMotionBinary');
+    if (binary) {
+      binary.checked = pref === 'on';
+      syncToggleStateLabel(binary);
+    }
     qsa('[data-reduce-motion-switch]').forEach((input) => {
       input.checked = input.dataset.reduceMotionSwitch === pref;
     });
@@ -3521,13 +3552,18 @@
       });
     });
 
-    qsa('[data-reduce-motion-switch]').forEach((input) => {
+    $('prefReduceMotionBinary')?.addEventListener('change', (event) => {
+      applyReduceMotionPreference(event.target.checked ? 'on' : 'off');
+      toolboxHaptic('light');
+    });
+
+    qsa('[data-reduce-motion-switch="system"]').forEach((input) => {
       input.addEventListener('change', () => {
         if (!input.checked) {
           input.checked = true;
           return;
         }
-        applyReduceMotionPreference(input.dataset.reduceMotionSwitch || 'system');
+        applyReduceMotionPreference('system');
         toolboxHaptic('light');
       });
     });

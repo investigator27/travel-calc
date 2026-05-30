@@ -1,10 +1,23 @@
 {
-  "latest": "v112",
+  "latest": "v113",
   "appVersion": "3.5.4",
   "highlights": [
-    "Binary settings toggles show On or Off next to the switch based on state."
+    "Developer settings use page intro cards; Reduce motion uses one On/Off row with a dynamic label."
   ],
   "builds": {
+    "v113": {
+      "intro": "Investigator Toolbox 3.5.4 — developer settings UI and reduce motion row.",
+      "sections": [
+        {
+          "heading": "Settings",
+          "items": [
+            "Developer screens use the same title intro card as Personalization and Location.",
+            "Reduce motion: one row toggles Off/On label; System stays on its own row.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v113)."
+          ]
+        }
+      ]
+    },
     "v112": {
       "intro": "Investigator Toolbox 3.5.4 — toggle On/Off labels.",
       "sections": [
