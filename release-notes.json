@@ -1,12 +1,24 @@
 {
-  "latest": "v40",
+  "latest": "v41",
   "appVersion": "3.0.0",
   "highlights": [
-    "Hotel tab layout fixed on Android — matches calculator width; amenity toggles are easier to read on phone.",
-    "Bottom navigation stays visible during updates; the app restarts itself after you tap Update.",
-    "Hotel Finder still uses live Booking.com listings with filters, budget cap, and email draft."
+    "Fixed update loop on mobile — tapping Update restarts once and shows “up to date” without flickering.",
+    "Hotel tab layout and amenity toggles improved on phone.",
+    "Hotel Finder uses live Booking.com listings with filters, budget cap, and email draft."
   ],
   "builds": {
+    "v41": {
+      "intro": "Investigator Toolbox 3.0.0 — update install fix for mobile.",
+      "sections": [
+        {
+          "heading": "Updates",
+          "items": [
+            "Tapping Update no longer causes a repeating banner or reload loop on Android.",
+            "After install, the app restarts once and shows a short “up to date” message."
+          ]
+        }
+      ]
+    },
     "v40": {
       "intro": "Investigator Toolbox 3.0.0 — mobile layout and update improvements.",
       "sections": [

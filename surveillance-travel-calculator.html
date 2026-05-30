@@ -728,7 +728,7 @@
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
     || /[?&]pwa=1(?:&|$)/.test(location.search);
   const DEV_MODE = IS_LOCAL_DEV && !PWA_TEST_MODE;
-  let PWA_CACHE_VERSION = 'v40';
+  let PWA_CACHE_VERSION = 'v41';
   const BASE_PATH = window.__BASE_PATH__ || '/investigator-toolbox/';
   const UPDATE_BANNER_TRANSITION_MS = 1000;
   const UPDATE_BANNER_HIDE_MS = UPDATE_BANNER_TRANSITION_MS;
@@ -807,42 +807,19 @@
     try { sessionStorage.removeItem('toolboxUpdateReady'); } catch {}
   }
 
-  async function purgeStaleAppCaches(keepBuild) {
-    if (!('caches' in window)) return;
-    const keepName = keepBuild ? `surveillance-travel-pwa-${keepBuild}` : '';
-    const keys = await caches.keys();
-    await Promise.all(
-      keys
-        .filter((name) => /^surveillance-travel-pwa-v\d+$/i.test(name) && name !== keepName)
-        .map((name) => caches.delete(name))
-    );
-  }
-
-  function buildHardReloadUrl(build) {
-    const url = new URL(location.href);
-    url.searchParams.set('app', build || PWA_CACHE_VERSION);
-    return url.toString();
-  }
-
-  async function performAppHardReload(build) {
-    const targetBuild = build || PWA_CACHE_VERSION;
-    try { sessionStorage.setItem('toolboxShowUptodate', '1'); } catch {}
-    await purgeStaleAppCaches(targetBuild);
-    location.replace(buildHardReloadUrl(targetBuild));
-  }
-
-  async function ensureFreshAppShellAfterUpdate() {
-    if (DEV_MODE || !('serviceWorker' in navigator)) return;
-    let expected = '';
-    try { expected = sessionStorage.getItem('toolboxReloadBuild') || ''; } catch {}
-    if (!expected) return;
-    try { sessionStorage.removeItem('toolboxReloadBuild'); } catch {}
-    const activeBuild = parseBuildFromScriptUrl(navigator.serviceWorker.controller?.scriptURL)
-      || registeredBuild
-      || '';
-    if (activeBuild && activeBuild === expected && activeBuild === PWA_CACHE_VERSION) return;
-    try { sessionStorage.setItem('toolboxReloadBuild', PWA_CACHE_VERSION); } catch {}
-    await performAppHardReload(PWA_CACHE_VERSION);
+  function finishAppUpdateReload() {
+    try {
+      sessionStorage.setItem('toolboxJustUpdated', '1');
+      sessionStorage.removeItem('toolboxUpdateReady');
+      sessionStorage.removeItem('toolboxShowUptodate');
+      sessionStorage.removeItem('toolboxReloadBuild');
+    } catch {}
+    const host = document.getElementById('updatePromptHost');
+    if (host) {
+      host.innerHTML = '';
+      host.classList.remove('is-visible', 'is-hiding');
+    }
+    window.location.reload();
   }
 
   function getDisplayUpdateBuild() {
@@ -1283,6 +1260,7 @@
   }
 
   function finishDownloadAndShowReady(versionHint) {
+    if (applyingAppUpdate || suppressUpdatePromptOnLoad || quietUpdateLoad) return;
     stopWaitingReadyPoll();
     updateProgressValue = 100;
     pendingUpdateBuild = parseBuildFromCacheName(versionHint) || PWA_CACHE_VERSION;
@@ -1293,6 +1271,7 @@
   }
 
   function handleDownloadProgress(data) {
+    if (applyingAppUpdate || suppressUpdatePromptOnLoad || quietUpdateLoad) return;
     const pct = Number(data.percent) || 0;
     const label = String(data.label || '').trim();
     const done = Number(data.done) || 0;
@@ -1319,6 +1298,7 @@
   }
 
   function handleServiceWorkerMessage(event) {
+    if (applyingAppUpdate || suppressUpdatePromptOnLoad || quietUpdateLoad) return;
     const data = event.data || {};
     if (data.type === 'UPDATE_PROGRESS') {
       handleDownloadProgress(data);
@@ -1334,11 +1314,10 @@
     registration._updateListenersAttached = true;
 
     registration.addEventListener('updatefound', () => {
+      if (applyingAppUpdate || suppressUpdatePromptOnLoad || quietUpdateLoad) return;
       const sw = registration.installing;
       if (!sw) return;
-      if (!quietUpdateLoad) {
-        renderUpdateBanner('downloading', { progress: 8, statusLine: 'Starting download…' });
-      }
+      renderUpdateBanner('downloading', { progress: 8, statusLine: 'Starting download…' });
       startWaitingReadyPoll();
       sw.addEventListener('statechange', () => {
         if (sw.state === 'installed') {
@@ -1405,25 +1384,20 @@
   }
 
   async function applyAppUpdate() {
+    if (applyingAppUpdate) return;
     applyingAppUpdate = true;
+    stopWaitingReadyPoll();
     clearUpdateReadyMark();
     refreshUpdateMenuBadge();
     updateUIState = 'installing';
     renderUpdateBanner('installing', { statusLine: 'Installing update…' });
 
-    const targetBuild = pendingUpdateBuild || PWA_CACHE_VERSION;
     let reloaded = false;
-    const reloadOnce = async () => {
+    const reloadOnce = () => {
       if (reloaded) return;
       reloaded = true;
       reloadAfterUpdate = false;
-      try { sessionStorage.setItem('toolboxReloadBuild', targetBuild); } catch {}
-      const host = document.getElementById('updatePromptHost');
-      if (host) {
-        host.innerHTML = '';
-        host.classList.remove('is-visible', 'is-hiding');
-      }
-      await performAppHardReload(targetBuild);
+      finishAppUpdateReload();
     };
 
     const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -1432,13 +1406,12 @@
     const waiting = waitingSW || reg?.waiting;
     if (!waiting) {
       await pause(400);
-      await reloadOnce();
+      reloadOnce();
       return;
     }
 
     waitingSW = waiting;
     const previousController = navigator.serviceWorker.controller;
-    reloadAfterUpdate = true;
 
     const activationDone = new Promise((resolve) => {
       const maxWait = setTimeout(resolve, 12000);
@@ -1471,8 +1444,8 @@
 
     await activationDone;
     renderUpdateBanner('installing', { statusLine: 'Update installed. Restarting…' });
-    await pause(800);
-    await reloadOnce();
+    await pause(600);
+    reloadOnce();
   }
 
   function bindWaitingWorker(registration, opts = {}) {
@@ -1921,20 +1894,12 @@ $('summaryNote').textContent =
     installBtn.classList.add('hidden');
   });
 
-  function stripAppReloadQueryFromUrl() {
-    try {
-      const url = new URL(location.href);
-      if (!url.searchParams.has('app')) return;
-      url.searchParams.delete('app');
-      const next = `${url.pathname}${url.search}${url.hash}`;
-      history.replaceState(null, '', next || url.pathname);
-    } catch {}
-  }
-
   window.addEventListener('load', async () => {
     await syncBuildLabelFromReleaseNotes();
     refreshMenuVersionLabel();
-    stripAppReloadQueryFromUrl();
+    try {
+      sessionStorage.removeItem('toolboxReloadBuild');
+    } catch {}
 
     try {
       if (sessionStorage.getItem('toolboxQuietLoad') === '1') {
@@ -1942,11 +1907,21 @@ $('summaryNote').textContent =
         quietUpdateLoad = true;
         suppressUpdatePromptOnLoad = true;
       }
-      if (sessionStorage.getItem('toolboxShowUptodate') === '1') {
+      if (sessionStorage.getItem('toolboxJustUpdated') === '1') {
+        sessionStorage.removeItem('toolboxJustUpdated');
+        sessionStorage.removeItem('toolboxReloadBuild');
         sessionStorage.removeItem('toolboxShowUptodate');
         suppressUpdatePromptOnLoad = true;
+        quietUpdateLoad = true;
         waitingSW = null;
-        showUptodateBanner();
+        applyingAppUpdate = false;
+        showUptodateBanner({ autoHideMs: 12000 });
+      } else if (sessionStorage.getItem('toolboxShowUptodate') === '1') {
+        sessionStorage.removeItem('toolboxShowUptodate');
+        suppressUpdatePromptOnLoad = true;
+        quietUpdateLoad = true;
+        waitingSW = null;
+        showUptodateBanner({ autoHideMs: 12000 });
       }
     } catch {}
 
@@ -1963,22 +1938,16 @@ $('summaryNote').textContent =
     if (!('serviceWorker' in navigator)) return;
 
     navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!reloadAfterUpdate || applyingAppUpdate) return;
-      const build = pendingUpdateBuild || PWA_CACHE_VERSION;
-      try { sessionStorage.setItem('toolboxReloadBuild', build); } catch {}
-      performAppHardReload(build);
-    });
 
     runUpdateFlowTask(async () => {
-      const registration = await registerForCurrentBuild();
-      await ensureFreshAppShellAfterUpdate();
-
       if (suppressUpdatePromptOnLoad) {
+        await registerForCurrentBuild();
         quietUpdateLoad = false;
         refreshMenuVersionLabel();
         return;
       }
+
+      const registration = await registerForCurrentBuild();
 
       if (!navigator.serviceWorker.controller) {
         const host = document.getElementById('updatePromptHost');
