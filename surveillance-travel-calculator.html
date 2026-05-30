@@ -1306,7 +1306,7 @@
             </div>
           </div>
           <div id="developerPanel" class="hidden">
-            <p class="hint" style="padding:0 var(--space-4) var(--space-2);margin:0">Turn tabs off, then tap <strong>Apply for all investigators</strong>. Every device picks this up on next open or refresh (no per-phone setup).</p>
+            <p class="hint" style="padding:0 var(--space-4) var(--space-2);margin:0">Turn tabs off → <strong>Apply for all investigators</strong> copies <strong>tab-policy.json</strong> for GitHub. Upload that file; phones load it on next open.</p>
             <h2 class="settings-section-title">Tabs</h2>
             <div class="settings-group">
               <div class="settings-row settings-row--toggle">
@@ -1369,13 +1369,14 @@
           <h1 class="settings-screen-title">Tab locks</h1>
           <div class="settings-group">
             <div class="settings-body-text">
-              <p>Tab policy is <strong>company-wide</strong>. Calculator is always available.</p>
+              <p>Tab policy lives in <strong>tab-policy.json</strong> on GitHub. Calculator is always available.</p>
               <ol class="steps-list">
-                <li>Turn a tab switch <strong>off</strong> to lock it (tab stays visible but cannot be opened).</li>
-                <li>Tap <strong>Apply for all investigators</strong> on the Developer screen.</li>
-                <li>Every device on v3.3.7+ fetches the policy when the app opens or comes back to the foreground.</li>
+                <li>Turn a tab switch <strong>off</strong> to lock it.</li>
+                <li>Tap <strong>Apply for all investigators</strong> — JSON is copied for GitHub.</li>
+                <li>Replace <strong>tab-policy.json</strong> on GitHub, save, and bump <strong>revision</strong> each time.</li>
+                <li>Phones on v3.3.8+ load the file when the app opens or returns to the foreground.</li>
               </ol>
-              <p>Investigators need the app update <strong>once</strong>. After that, lock changes apply without visiting each phone.</p>
+              <p>Set <code>false</code> on a tab to lock it. Example: <code>"hotels": false</code>.</p>
             </div>
           </div>
         </div>
@@ -1476,8 +1477,8 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  const BUNDLED_APP_VERSION = '3.3.7';
-  const BUNDLED_PWA_CACHE_VERSION = 'v59';
+  const BUNDLED_APP_VERSION = '3.3.8';
+  const BUNDLED_PWA_CACHE_VERSION = 'v60';
   const TAB_POLICY_API_URL = 'https://booking-lookup.investigator-toolbox.workers.dev';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
@@ -2750,17 +2751,6 @@
   }
 
   async function fetchRemoteTabPolicy() {
-    const workerBase = (TAB_POLICY_API_URL || '').replace(/\/$/, '');
-    if (workerBase) {
-      try {
-        const response = await fetch(`${workerBase}/tab-policy`, { cache: 'no-store' });
-        if (response.ok) {
-          const data = await response.json();
-          const parsed = parseTabPolicyPayload(data);
-          if (parsed) return applyRemoteTabPolicy(parsed);
-        }
-      } catch {}
-    }
     try {
       const response = await fetch(`${BASE_PATH}tab-policy.json?ts=${Date.now()}`, { cache: 'no-store' });
       if (response.ok) {
@@ -2769,58 +2759,53 @@
         if (parsed) return applyRemoteTabPolicy(parsed);
       }
     } catch {}
+
+    const workerBase = (TAB_POLICY_API_URL || '').replace(/\/$/, '');
+    if (!workerBase) return false;
+    try {
+      const response = await fetch(`${workerBase}/tab-policy`, { cache: 'no-store' });
+      if (!response.ok) return false;
+      const data = await response.json();
+      if (data.configured === false || data.source === 'unset') return false;
+      const parsed = parseTabPolicyPayload(data);
+      if (parsed) return applyRemoteTabPolicy(parsed);
+    } catch {}
     return false;
   }
 
-  async function publishRemoteTabPolicy() {
-    const map = readDeveloperTabTogglesIntoMap();
-    const payload = {
+  function buildTabPolicyJson(map) {
+    return {
       revision: String(Date.now()),
       updatedAt: new Date().toISOString(),
       hotels: map.hotels,
       requests: map.requests,
       camera: map.camera,
     };
+  }
+
+  async function publishRemoteTabPolicy() {
+    const map = readDeveloperTabTogglesIntoMap();
+    const payload = buildTabPolicyJson(map);
+    const jsonText = JSON.stringify(payload, null, 2);
     const statusEl = $('developerApplyTabPolicyStatus');
-    const workerBase = (TAB_POLICY_API_URL || '').replace(/\/$/, '');
-    if (!workerBase) {
-      if (statusEl) {
-        statusEl.textContent = 'Worker URL missing. Upload tab-policy.json to GitHub instead.';
-        statusEl.classList.remove('hidden');
-      }
-      return false;
-    }
+    const parsed = parseTabPolicyPayload(payload);
+    if (parsed) applyRemoteTabPolicy(parsed);
+
+    let copied = false;
     try {
-      const response = await fetch(`${workerBase}/tab-policy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Toolbox-Dev-Password': DEVELOPER_PASSWORD,
-        },
-        body: JSON.stringify(payload),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        if (statusEl) {
-          statusEl.textContent = data.error || 'Publish failed. Bind TAB_POLICY_KV on the Worker, or upload tab-policy.json to GitHub.';
-          statusEl.classList.remove('hidden');
-        }
-        return false;
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(jsonText);
+        copied = true;
       }
-      const parsed = parseTabPolicyPayload(data);
-      if (parsed) applyRemoteTabPolicy(parsed);
-      if (statusEl) {
-        statusEl.textContent = 'Applied for all investigators. Devices update on next open or when they return to the app.';
-        statusEl.classList.remove('hidden');
-      }
-      return true;
-    } catch {
-      if (statusEl) {
-        statusEl.textContent = 'Could not reach the Worker. Upload tab-policy.json to GitHub (same folder as the app).';
-        statusEl.classList.remove('hidden');
-      }
-      return false;
+    } catch {}
+
+    if (statusEl) {
+      statusEl.textContent = copied
+        ? 'Copied tab-policy.json. Paste it on GitHub (same folder as the app), save, wait 1–2 min, then reopen the app on each phone.'
+        : 'Save this on GitHub as tab-policy.json (same folder as the app). Bump revision each time you change locks.';
+      statusEl.classList.remove('hidden');
     }
+    return true;
   }
 
   function readDeveloperTabTogglesIntoMap() {
