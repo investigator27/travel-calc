@@ -1428,7 +1428,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v77';
+  const BUNDLED_PWA_CACHE_VERSION = 'v78';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -4065,7 +4065,7 @@ textarea:focus, textarea:focus-visible {
     if (!base) return false;
     try {
       const u = new URL(base.startsWith('http') ? base : `https://www.booking.com${base.startsWith('/') ? base : `/${base}`}`);
-      return /\/hotel\/[a-z]{2}\//i.test(u.pathname) && !/searchresults/i.test(u.pathname);
+      return /^\/hotel\/ca\//i.test(u.pathname) && !/searchresults/i.test(u.pathname);
     } catch {
       return false;
     }
@@ -4077,7 +4077,7 @@ textarea:focus, textarea:focus-visible {
     if (!base) return '';
     try {
       const u = new URL(base.startsWith('http') ? base : `https://www.booking.com${base.startsWith('/') ? base : `/${base}`}`);
-      if (!/\/hotel\/[a-z]{2}\//i.test(u.pathname) || /searchresults/i.test(u.pathname)) return '';
+      if (!/^\/hotel\/ca\//i.test(u.pathname) || /searchresults/i.test(u.pathname)) return '';
       let pathname = u.pathname;
       if (!/\.html?$/i.test(pathname)) pathname = `${pathname.replace(/\/$/, '')}.html`;
       const out = new URL(`https://www.booking.com${pathname}`);
@@ -4178,6 +4178,18 @@ textarea:focus, textarea:focus-visible {
     return /\b(apartment|apartments|condo|condominium|studio|chalet|villa|hostel|homestay|guest-house|guesthouse|bnb|bed-and-breakfast|bedandbreakfast|residence|cottage|holiday-home|vacation-home|townhouse|bungalow|loft)\b/.test(
       path
     );
+  }
+
+  /** Canadian property pages only — drops US/MX listings near the border. */
+  function isCanadianBookingListing(hotel) {
+    const raw = String(hotel?.url || hotel?.bookingPropertyUrl || '').trim();
+    if (!raw) return false;
+    try {
+      const u = new URL(raw.startsWith('http') ? raw : `https://www.booking.com${raw.startsWith('/') ? raw : `/${raw}`}`);
+      return /^\/hotel\/ca\//i.test(u.pathname);
+    } catch {
+      return /^\/hotel\/ca\//i.test(raw) || /\/hotel\/ca\//i.test(raw);
+    }
   }
 
   /** Strict whitelist: hotels, motels, and Booking “Inn”/“Lodge” types — not B&Bs, apartments, guest houses. */
@@ -4288,7 +4300,7 @@ textarea:focus, textarea:focus-visible {
   }
 
   function applyClientHotelFilters(hotels) {
-    let list = Array.isArray(hotels) ? hotels.slice() : [];
+    let list = (Array.isArray(hotels) ? hotels : []).filter(isCanadianBookingListing);
     if (els.hotelsOnly?.checked) {
       list = list.filter((h) => isHotelOrMotelListing(h));
     }
@@ -5172,10 +5184,12 @@ out body;`;
       } else if (priceTotalStay != null) {
         perNightInclTax = Math.round((priceTotalStay + taxesExtra) / n);
       }
-      if (perNightInclTax != null) priceLabel = `CAD ${perNightInclTax}`;
-    } else if (pricePerNight != null) {
+      if (perNightInclTax != null && perNightInclTax > 0) priceLabel = `CAD ${perNightInclTax}`;
+    } else if (pricePerNight != null && pricePerNight > 0) {
       priceLabel = `CAD ${pricePerNight}+ tax`;
     }
+
+    if (perNightInclTax != null && perNightInclTax <= 0) perNightInclTax = null;
 
     const stayValue =
       priceTotalStay != null ? priceTotalStay : pricePerNight != null ? pricePerNight * n : null;
@@ -5230,19 +5244,18 @@ out body;`;
       };
     });
 
-    // Budget: ≤ cap on known all-in nightly; skip pre-tax-only when "+ tax" has no amount; no price still shows.
+    const hasVerifiablePrice = (it) => Number(it.perNightInclTax) > 0;
     const budgetOk = (it) => {
-      if (budgetCap <= 0) return true;
-      if (it.taxesAmbiguous) return false;
-      if (it.perNightInclTax == null) return true;
+      if (budgetCap <= 0) return hasVerifiablePrice(it);
+      if (it.taxesAmbiguous || !hasVerifiablePrice(it)) return false;
       return it.perNightInclTax <= budgetCap;
     };
     const withinRadius = mapped.filter((it) => it.distance == null || it.distance <= radiusKm);
-    const withinBudget = withinRadius.filter(budgetOk);
 
-    if (withinBudget.length) {
+    const withinRadiusBudget = withinRadius.filter(budgetOk);
+    if (withinRadiusBudget.length) {
       return {
-        items: withinBudget.slice(0, requested),
+        items: withinRadiusBudget.slice(0, requested),
         requested,
         verifyMode: 'booking',
         budgetCap,
@@ -5251,31 +5264,36 @@ out body;`;
       };
     }
 
-    // Fallback: nothing under budget within the chosen radius — show the nearest
-    // budget-compliant hotels beyond it (by distance) rather than returning nothing.
-    const expanded = mapped
+    // Canadian hotels only beyond radius, with a verified all-in rate under cap (no US / $0 junk).
+    const beyondRadiusBudget = mapped
+      .filter((it) => it.distance != null && it.distance > radiusKm)
       .filter(budgetOk)
-      .slice()
-      .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+      .sort((a, b) => a.distance - b.distance);
 
-    if (expanded.length) {
+    if (beyondRadiusBudget.length) {
       return {
-        items: expanded.slice(0, requested),
+        items: beyondRadiusBudget.slice(0, requested),
         requested,
         verifyMode: 'expanded',
         budgetCap,
         inventoryCount: filtered.length,
+        withinRadiusCount: withinRadius.length,
         areaSearchUrl
       };
     }
 
-    // Nothing under budget anywhere in the returned set.
+    const withinRadiusPriced = withinRadius.filter(hasVerifiablePrice);
+    const overBudgetCount = withinRadiusPriced.filter((it) => it.perNightInclTax > budgetCap).length;
+    const noPriceCount = withinRadius.length - withinRadiusPriced.length;
+
     return {
       items: [],
       requested,
       verifyMode: 'over-budget',
       budgetCap,
-      nearbyCount: mapped.length,
+      nearbyCount: withinRadius.length,
+      overBudgetCount,
+      noPriceCount,
       inventoryCount: filtered.length,
       areaSearchUrl
     };
@@ -5313,7 +5331,9 @@ out body;`;
       inventoryError: ranked.inventoryError,
       areaSearchUrl: ranked.areaSearchUrl,
       budgetCap: ranked.budgetCap,
-      nearbyCount: ranked.nearbyCount
+      nearbyCount: ranked.nearbyCount,
+      overBudgetCount: ranked.overBudgetCount,
+      noPriceCount: ranked.noPriceCount
     }, { skipScroll: true });
   }
 
@@ -5399,7 +5419,19 @@ out body;`;
       } else if (resultMeta.verifyMode === 'over-budget') {
         const capLabel = resultMeta.budgetCap ? formatMoney(resultMeta.budgetCap) : '$200.00';
         const nearby = resultMeta.nearbyCount || 0;
-        const lead = `Found ${nearby} hotel${nearby === 1 ? '' : 's'} nearby, but none were ≤ ${capLabel}/night incl. tax for your dates. Try different dates or turn off filters.`;
+        const over = resultMeta.overBudgetCount || 0;
+        const noPrice = resultMeta.noPriceCount || 0;
+        let detail = '';
+        if (nearby > 0) {
+          const bits = [];
+          if (over > 0) bits.push(`${over} over ${capLabel}/night incl. tax`);
+          if (noPrice > 0) bits.push(`${noPrice} without a scraped rate`);
+          detail = bits.length ? ` (${bits.join('; ')})` : '';
+        }
+        const lead =
+          nearby > 0
+            ? `Found ${nearby} Canadian hotel${nearby === 1 ? '' : 's'} within ${radiusKm} km, but none ≤ ${capLabel}/night incl. tax${detail}. Try a larger distance, different dates, or fewer filters.`
+            : `No Canadian hotels within ${radiusKm} km for your dates and filters. Try a larger distance or different dates.`;
         setStatus(lead, 'error');
         scrollToHotelResults();
         return;
@@ -5430,8 +5462,10 @@ out body;`;
         ? `${hotel.distance} km${hotel.driveTime ? ` · ${hotel.driveTime}` : ''}`
         : (hotel.distanceText || 'Distance n/a');
       const pricePart = hotel.priceLabel
-        ? ` · from ${hotel.priceLabel}/night incl. tax`
-        : (hotel.rawPrice ? ` · ${hotel.rawPrice}` : '');
+        ? ` · from ${hotel.priceLabel}${/\/night/i.test(hotel.priceLabel) ? '' : '/night incl. tax'}`
+        : (hotel.rawPrice && !/^CA?\$?\s*0\b/i.test(String(hotel.rawPrice).trim())
+          ? ` · ${hotel.rawPrice}`
+          : ' · rate on Booking.com');
       const reviewBadge = hotel.reviewScore
         ? `<span class="hotel-card__score" title="${escapeHtml(hotel.reviewCount != null ? `${hotel.reviewCount} reviews on Booking.com` : 'Booking.com review score')}">${escapeHtml(hotel.reviewScore)}${hotel.reviewWord ? ` ${escapeHtml(hotel.reviewWord)}` : ''}</span>`
         : '';
@@ -5462,10 +5496,17 @@ out body;`;
     }).join('');
     document.querySelectorAll('.hotel-card').forEach((c) => c.classList.remove('selected'));
 
-    const countLabel = items.length === 1 ? '1 hotel' : `${items.length} hotels`;
-    const headline = resultMeta.verifyMode === 'expanded'
-      ? `No hotels under budget within ${radiusKm} km — showing the nearest ${countLabel} beyond that, sorted by distance.`
-      : `Found ${countLabel} on Booking.com within ${radiusKm} km of your location, sorted by distance.`;
+    const countLabel = items.length === 1 ? '1 Canadian hotel' : `${items.length} Canadian hotels`;
+    const capLabel = resultMeta.budgetCap ? formatMoney(resultMeta.budgetCap) : '$200.00';
+    let headline;
+    if (resultMeta.verifyMode === 'expanded') {
+      headline =
+        `No Canadian hotels ≤ ${capLabel}/night incl. tax within ${radiusKm} km — ` +
+        `showing the nearest ${countLabel} farther out (still in Canada).`;
+    } else {
+      headline =
+        `Found ${countLabel} on Booking.com within ${radiusKm} km (Canada only), ≤ ${capLabel}/night incl. tax.`;
+    }
     setStatus(headline, 'success');
     if (!renderOpts.skipScroll) scrollToHotelResults();
   }
@@ -5515,7 +5556,9 @@ out body;`;
         inventoryError: ranked.inventoryError,
         areaSearchUrl: ranked.areaSearchUrl,
         budgetCap: ranked.budgetCap,
-        nearbyCount: ranked.nearbyCount
+        nearbyCount: ranked.nearbyCount,
+        overBudgetCount: ranked.overBudgetCount,
+        noPriceCount: ranked.noPriceCount
       });
     } catch (err) {
       stopHotelSearchProgress();

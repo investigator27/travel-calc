@@ -1,10 +1,24 @@
 {
-  "latest": "v77",
+  "latest": "v78",
   "appVersion": "3.5.4",
   "highlights": [
     "Hotel Finder: correct all-in nightly prices and $200/night budget (all provinces)."
   ],
   "builds": {
+    "v78": {
+      "intro": "Investigator Toolbox 3.5.4 — Canada-only hotels; fix border and budget fallback.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Drops US/MX Booking listings (border GPS no longer shows American hotels).",
+            "Budget filter requires a real all-in nightly rate — no $0 or missing-tax false matches.",
+            "Clearer errors when hotels are over $200/night or lack a scraped price.",
+            "Deploy booking-worker-63 plus the three GitHub files; hard-refresh; new Search."
+          ]
+        }
+      ]
+    },
     "v77": {
       "intro": "Investigator Toolbox 3.5.4 — all-in nightly price and budget cap (all provinces).",
       "sections": [
