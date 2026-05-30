@@ -1,6 +1,6 @@
 /* sw-revision: 27 — bump this comment when testing updates locally */
 const BASE = new URL('./', self.location).pathname;
-let activeCacheName = 'surveillance-travel-pwa-v99';
+let activeCacheName = 'surveillance-travel-pwa-v100';
 
 const CORE_ASSETS = [
   BASE + 'surveillance-travel-calculator.html',
@@ -52,6 +52,14 @@ async function broadcastUpdate(data) {
   clients.forEach((client) => client.postMessage(data));
 }
 
+async function syncSwAppBadge(count) {
+  if (typeof self.setAppBadge !== 'function') return;
+  try {
+    if (count > 0) await self.setAppBadge(count);
+    else if (typeof self.clearAppBadge === 'function') await self.clearAppBadge();
+  } catch {}
+}
+
 async function cacheAsset(cache, asset) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CACHE_TIMEOUT_MS);
@@ -98,6 +106,9 @@ self.addEventListener('install', (event) => {
       total
     });
     await broadcastUpdate({ type: 'UPDATE_READY', version: activeCacheName });
+    if (self.registration?.active) {
+      await syncSwAppBadge(1);
+    }
   })());
 });
 
@@ -108,11 +119,19 @@ self.addEventListener('activate', (event) => {
     const keys = await caches.keys();
     await Promise.all(keys.filter((key) => key !== cacheName).map((key) => caches.delete(key)));
     await self.clients.claim();
+    await syncSwAppBadge(0);
   })());
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  const data = event.data || {};
+  if (data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
+  if (data.type === 'SET_APP_BADGE') {
+    event.waitUntil(syncSwAppBadge(Number(data.count) || 0));
+  }
 });
 
 self.addEventListener('fetch', (event) => {

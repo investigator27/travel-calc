@@ -1,10 +1,23 @@
 {
-  "latest": "v99",
+  "latest": "v100",
   "appVersion": "3.5.4",
   "highlights": [
-    "Centered red 1 on update badge."
+    "Home screen app icon shows red 1 when an update is ready; menu badge 1 is centered."
   ],
   "builds": {
+    "v100": {
+      "intro": "Investigator Toolbox 3.5.4 — update badges on menu and home screen icon.",
+      "sections": [
+        {
+          "heading": "Updates",
+          "items": [
+            "Installed app icon shows a red 1 on the home screen when a software update is ready (Badging API + service worker).",
+            "Menu and Software Update row use a real badge element so the 1 is centered in the red dot.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v100)."
+          ]
+        }
+      ]
+    },
     "v99": {
       "intro": "Investigator Toolbox 3.5.4 — center update badge.",
       "sections": [

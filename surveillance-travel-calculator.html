@@ -217,28 +217,15 @@
     .logo-icon{background:var(--color-surface) url('./assets/icon-192.png') center/130% no-repeat}
     .brand h1{font-size:clamp(1.375rem,1.15rem + 0.55vw,1.625rem);line-height:1.1;font-weight:700}
     .brand p{color:var(--color-text-muted);font-size:var(--text-sm)}
-    .icon-btn{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--color-surface);border:1px solid color-mix(in srgb,var(--color-text) 10%,transparent);box-shadow:var(--shadow-sm);flex-shrink:0}
-    .icon-btn.menu-has-update{position:relative}
-    .icon-btn.menu-has-update::after{
-      content:'1';
+    .icon-btn{position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--color-surface);border:1px solid color-mix(in srgb,var(--color-text) 10%,transparent);box-shadow:var(--shadow-sm);flex-shrink:0}
+    .menu-update-badge{
       position:absolute;
       top:2px;
       right:2px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
       width:18px;
       height:18px;
       min-width:18px;
-      padding:0;
-      box-sizing:border-box;
-      border-radius:999px;
-      background:#dc2626;
-      color:#fff;
       font-size:11px;
-      font-weight:800;
-      line-height:1;
-      font-family:var(--font-body);
       border:2px solid var(--color-surface);
       box-shadow:0 1px 3px rgb(0 0 0 / .22);
       pointer-events:none;
@@ -808,9 +795,8 @@
     }
     .settings-badge,
     .update-count-badge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
+      display:grid;
+      place-items:center;
       width:20px;
       height:20px;
       min-width:20px;
@@ -822,6 +808,8 @@
       font-size:12px;
       font-weight:800;
       line-height:1;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      font-variant-numeric:tabular-nums;
       flex-shrink:0;
     }
     @media(prefers-reduced-motion:reduce){
@@ -838,7 +826,7 @@
         <div class="logo logo-icon" aria-hidden="true"></div>
         <div><h1>Investigator Toolbox</h1><p>Testing In Progress</p></div>
       </div>
-      <button class="icon-btn" type="button" id="openSettingsBtn" aria-label="Open settings"><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 6h16M4 12h16M4 18h16'/></svg></button>
+      <button class="icon-btn" type="button" id="openSettingsBtn" aria-label="Open settings"><svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 6h16M4 12h16M4 18h16'/></svg><span class="menu-update-badge update-count-badge hidden" id="menuUpdateBadge" aria-hidden="true">1</span></button>
     </div>
   </header>
 
@@ -1454,7 +1442,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v99';
+  const BUNDLED_PWA_CACHE_VERSION = 'v100';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -1472,6 +1460,7 @@
   const UPDATE_BANNER_AUTODISMISS_MS = 3000;
 
   const openSettingsBtn = $('openSettingsBtn');
+  const menuUpdateBadge = $('menuUpdateBadge');
   const settingsOverlay = $('settingsOverlay');
   const settingsStack = $('settingsStack');
   const settingsBackBtn = $('settingsBackBtn');
@@ -1966,30 +1955,52 @@
     `).join('');
   }
 
+  function isUpdateReadyInSession() {
+    try {
+      return sessionStorage.getItem('toolboxUpdateReady') === '1';
+    } catch {
+      return false;
+    }
+  }
+
   function isUpdateMenuBadgeActive() {
     if (updateUIState === 'installing' || updateUIState === 'uptodate') return false;
     if (updateUIState === 'ready' || updateUIState === 'downloading') return true;
-    return !!waitingSW;
+    if (waitingSW) return true;
+    return isUpdateReadyInSession();
   }
 
   async function syncAppIconBadge(show) {
-    if (!('setAppBadge' in Navigator)) return;
+    const count = show ? 1 : 0;
+    if (typeof navigator.setAppBadge === 'function') {
+      try {
+        if (count > 0) await navigator.setAppBadge(count);
+        else if (typeof navigator.clearAppBadge === 'function') await navigator.clearAppBadge();
+        return;
+      } catch {
+        /* fall through to service worker */
+      }
+    }
+    const controller = navigator.serviceWorker?.controller;
+    if (!controller) return;
     try {
-      if (show) await navigator.setAppBadge(1);
-      else await navigator.clearAppBadge();
+      controller.postMessage({ type: 'SET_APP_BADGE', count });
     } catch {
-      /* Badging API unsupported or denied */
+      /* Badging API unsupported */
     }
   }
 
   function refreshSettingsUpdateBadge() {
     const pending = isUpdateMenuBadgeActive();
     if (openSettingsBtn) {
-      openSettingsBtn.classList.toggle('menu-has-update', pending);
       openSettingsBtn.setAttribute(
         'aria-label',
         pending ? 'Open settings — 1 update available' : 'Open settings'
       );
+    }
+    if (menuUpdateBadge) {
+      menuUpdateBadge.classList.toggle('hidden', !pending);
+      menuUpdateBadge.setAttribute('aria-hidden', pending ? 'false' : 'true');
     }
     if (settingsUpdateBadge) {
       settingsUpdateBadge.classList.toggle('hidden', !pending);
@@ -2214,7 +2225,9 @@
       return;
     }
     if (data.type === 'UPDATE_READY') {
+      markUpdateReadyForBanner();
       finishDownloadAndShowReady(data.version);
+      refreshSettingsUpdateBadge();
     }
   }
 
@@ -2373,9 +2386,9 @@
     pendingUpdateBuild = waitingBuild
       || parseBuildFromCacheName(pendingUpdateBuild)
       || resolveTargetBuild();
+    markUpdateReadyForBanner();
     const showBanner = !quietUpdateLoad && (opts.showBanner ?? shouldAutoPromptUpdate());
     if (showBanner) {
-      markUpdateReadyForBanner();
       showUpdateReadyBanner();
     } else {
       refreshSettingsVersionLabel();
@@ -3218,13 +3231,19 @@ $('summaryNote').textContent =
         await waitForServiceWorkerSettle(registration, 10000);
         bindWaitingWorker(registration);
       }
-    }).catch(() => {});
+    })
+      .catch(() => {})
+      .finally(() => {
+        refreshSettingsUpdateBadge();
+      });
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return;
+      refreshSettingsUpdateBadge();
       if (isUpdateBusy()) return;
       checkForAppUpdate({ showCheckingUi: false }).then((status) => {
         if (status === 'available') bindWaitingWorker(swRegistration);
+        else refreshSettingsUpdateBadge();
       });
     });
     setInterval(() => {
