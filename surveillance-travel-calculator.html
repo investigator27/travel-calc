@@ -82,30 +82,39 @@
       height:-webkit-fill-available;
     }
     html, body{
+      width:100%;
+      height:100%;
+      min-height:100vh;
+      min-height:100dvh;
       min-height:100svh;
       min-height:-webkit-fill-available;
-      height:100%;
       overflow:hidden;
       background:var(--color-bg);
       color:var(--color-text);
       font:400 var(--text-base)/1.5 var(--font-body);
     }
     html{background:var(--color-bg)}
+    body{
+      position:fixed;
+      inset:0;
+      overscroll-behavior:none;
+    }
     button,input,select,textarea{font:inherit;color:inherit}
     button{border:none;background:none;cursor:pointer}
     a,button,input,select,textarea{transition:background var(--transition),border-color var(--transition),color var(--transition),box-shadow var(--transition)}
     :focus-visible{outline:2px solid var(--color-primary);outline-offset:2px;border-radius:var(--radius-sm)}
     .app-shell{
-      display:grid;
-      grid-template-rows:auto minmax(0,1fr) auto;
-      height:100svh;
-      height:100dvh;
-      max-height:100svh;
-      max-width:680px;
-      margin:0 auto;
+      position:relative;
+      display:flex;
+      flex-direction:column;
       width:100%;
+      max-width:680px;
+      height:100%;
+      min-height:0;
+      margin:0 auto;
       background:var(--color-bg);
       overflow:hidden;
+      isolation:isolate;
     }
     .app-header{
       flex-shrink:0;
@@ -115,6 +124,7 @@
       border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);
     }
     .app-content{
+      flex:1 1 auto;
       min-height:0;
       overflow-y:auto;
       overflow-x:clip;
@@ -122,7 +132,7 @@
       overscroll-behavior:contain;
       overflow-anchor:none;
       padding:var(--space-4);
-      padding-bottom:var(--space-5);
+      padding-bottom:calc(var(--tab-bar-height) + var(--tab-bar-safe-bottom) + var(--space-6));
       scrollbar-width:none;
       -ms-overflow-style:none;
     }
@@ -140,15 +150,23 @@
       text-align:center;
     }
     .tab-bar{
-      z-index:200;
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:250;
+      flex-shrink:0;
       display:grid;
-      grid-template-columns:repeat(4,1fr);
+      grid-template-columns:repeat(4,minmax(0,1fr));
       gap:var(--space-1);
       background:var(--color-surface);
       border-top:1px solid var(--color-border);
       padding:var(--space-2) var(--space-2) calc(var(--tab-bar-safe-bottom) + var(--space-2));
       min-height:calc(var(--tab-bar-height) + var(--tab-bar-safe-bottom));
       box-shadow:0 -2px 12px rgb(25 23 18/.06);
+      visibility:visible;
+      opacity:1;
+      pointer-events:auto;
     }
     [data-theme="dark"] .tab-bar{box-shadow:0 -2px 12px rgb(0 0 0/.25)}
     .tab-bar-item{
@@ -304,6 +322,12 @@
       opacity:1;
       margin-bottom:var(--space-4);
     }
+    #updatePromptHost.is-hiding{
+      grid-template-rows:0fr;
+      opacity:0;
+      margin-bottom:var(--space-3);
+      pointer-events:none;
+    }
     .update-banner{
       margin:0;
       padding:var(--space-3) var(--space-4) var(--space-4);
@@ -320,7 +344,28 @@
       transition:transform var(--update-banner-duration) var(--update-banner-ease);
     }
     #updatePromptHost.is-visible .update-banner{transform:translateY(0)}
+    .update-banner.is-swapping .update-banner__body,
+    .update-banner.is-swapping .update-banner__progress-slot,
+    .update-banner.is-swapping .update-banner__actions{opacity:.4}
+    .update-banner__body,
+    .update-banner__progress-slot,
+    .update-banner__actions{
+      transition:opacity .35s var(--update-banner-ease);
+    }
     .update-banner__top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
+    .update-banner__progress-slot{
+      display:grid;
+      gap:var(--space-1);
+      max-height:3.5rem;
+      overflow:hidden;
+      transition:max-height var(--update-banner-duration) var(--update-banner-ease),opacity .35s var(--update-banner-ease),margin var(--update-banner-duration) var(--update-banner-ease);
+    }
+    .update-banner__progress-slot.is-collapsed{
+      max-height:0;
+      opacity:0;
+      margin:0;
+      pointer-events:none;
+    }
     .update-banner__body{flex:1;min-width:0;display:grid;gap:var(--space-2)}
     .update-banner__title{font-weight:700;font-size:var(--text-sm);margin:0;line-height:1.35}
     .update-banner__text{font-size:var(--text-xs);color:var(--color-text-muted);margin:0;line-height:1.45}
@@ -346,6 +391,7 @@
       transition:width 0.2s linear;
     }
     .update-banner--ready .update-progress__bar{background:var(--color-success)}
+    .update-banner--uptodate{border-color:color-mix(in srgb,var(--color-success) 40%,var(--color-border))}
     .update-progress.is-indeterminate .update-progress__bar{
       width:40%!important;
       background:var(--color-primary-hover);
@@ -752,12 +798,12 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  let APP_VERSION = '3.2.0';
+  let APP_VERSION = '3.2.1';
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
     || /[?&]pwa=1(?:&|$)/.test(location.search);
   const DEV_MODE = IS_LOCAL_DEV && !PWA_TEST_MODE;
-  let PWA_CACHE_VERSION = 'v49';
+  let PWA_CACHE_VERSION = 'v50';
   const BASE_PATH = window.__BASE_PATH__ || '/investigator-toolbox/';
   const UPDATE_BANNER_TRANSITION_MS = 2400;
   const UPDATE_BANNER_HIDE_MS = UPDATE_BANNER_TRANSITION_MS;
@@ -1061,9 +1107,178 @@
   }
 
   function bindUpdateBannerActions() {
-    document.getElementById('updateNowBtn')?.addEventListener('click', applyAppUpdate);
-    document.getElementById('updateDetailsBtn')?.addEventListener('click', openUpdateDetails);
-    document.getElementById('updateRetryBtn')?.addEventListener('click', () => runUpdateCheckFlow());
+    const host = document.getElementById('updatePromptHost');
+    if (!host || host._updateActionsBound) return;
+    host._updateActionsBound = true;
+    host.addEventListener('click', (event) => {
+      const id = event.target?.id;
+      if (id === 'updateNowBtn') applyAppUpdate();
+      else if (id === 'updateDetailsBtn') openUpdateDetails();
+      else if (id === 'updateRetryBtn') runUpdateCheckFlow();
+    });
+  }
+
+  function getUpdateBannerConfig(state, opts = {}) {
+    if (typeof opts.progress === 'number') updateProgressValue = opts.progress;
+    const copy = {
+      checking: {
+        title: 'Checking for updates',
+        status: opts.statusLine || 'Connecting to the update server…',
+        showProgress: true,
+        progress: Math.max(0, Math.min(100, updateProgressValue || 0)),
+        indeterminate: false,
+        showUpdate: false,
+        showDetails: false,
+        showRetry: false,
+        bannerClass: ''
+      },
+      downloading: {
+        title: 'Downloading update',
+        status: opts.statusLine || 'Please wait…',
+        showProgress: true,
+        progress: Math.max(0, Math.min(100, updateProgressValue || 0)),
+        indeterminate: false,
+        showUpdate: false,
+        showDetails: false,
+        showRetry: false,
+        bannerClass: ''
+      },
+      ready: {
+        title: `Update available · ${formatAppVersionLabel()}`,
+        status: opts.statusLine || `Build ${getDisplayUpdateBuild()} is ready. Tap Update to install.`,
+        showProgress: false,
+        progress: 0,
+        indeterminate: false,
+        showUpdate: true,
+        showDetails: false,
+        showRetry: false,
+        bannerClass: 'update-banner--ready'
+      },
+      installing: {
+        title: 'Installing update',
+        status: opts.statusLine || 'Restarting the app…',
+        showProgress: false,
+        progress: 0,
+        indeterminate: false,
+        showUpdate: false,
+        showDetails: false,
+        showRetry: false,
+        bannerClass: ''
+      },
+      uptodate: {
+        title: `${formatAppVersionLabel()} · up to date`,
+        status: opts.statusLine || getFriendlyUptodateStatus(),
+        showProgress: false,
+        progress: 0,
+        indeterminate: false,
+        showUpdate: false,
+        showDetails: true,
+        showRetry: false,
+        bannerClass: 'update-banner--uptodate'
+      },
+      error: {
+        title: 'Update check failed',
+        status: opts.statusLine || 'The download was interrupted. Wait a moment, then tap Retry.',
+        showProgress: false,
+        showUpdate: false,
+        showDetails: false,
+        showRetry: true,
+        bannerClass: ''
+      }
+    };
+    return copy[state] || copy.ready;
+  }
+
+  function ensureUpdateBannerShell(host) {
+    let banner = host.querySelector('.update-banner');
+    if (banner) return banner;
+    host.innerHTML = `<div class="update-banner" data-update-state="" role="status" aria-live="polite">
+      <div class="update-banner__top">
+        <div class="update-banner__body">
+          <div class="update-banner__title"></div>
+          <p class="update-banner__status"></p>
+        </div>
+      </div>
+      <div class="update-banner__progress-slot is-collapsed"></div>
+      <div class="update-banner__actions"></div>
+    </div>`;
+    bindUpdateBannerActions();
+    return host.querySelector('.update-banner');
+  }
+
+  function paintUpdateBanner(banner, cfg) {
+    const titleEl = banner.querySelector('.update-banner__title');
+    const statusEl = banner.querySelector('.update-banner__status');
+    const progressSlot = banner.querySelector('.update-banner__progress-slot');
+    const actionsEl = banner.querySelector('.update-banner__actions');
+    if (titleEl) titleEl.textContent = cfg.title;
+    if (statusEl) statusEl.textContent = cfg.status;
+
+    banner.className = `update-banner ${cfg.bannerClass || ''}`.trim();
+    banner.dataset.updateState = updateUIState;
+
+    if (progressSlot) {
+      const progress = typeof cfg.progress === 'number' ? cfg.progress : updateProgressValue;
+      const progressPct = Math.round(progress);
+      if (cfg.showProgress) {
+        progressSlot.classList.remove('is-collapsed');
+        const existingBar = progressSlot.querySelector('.update-progress__bar');
+        if (existingBar && !cfg.indeterminate && banner.dataset.updateState === updateUIState) {
+          existingBar.style.width = `${progressPct}%`;
+          const pctEl = progressSlot.querySelector('.update-progress__percent');
+          if (pctEl) pctEl.textContent = `${progressPct}%`;
+          const track = progressSlot.querySelector('.update-progress');
+          if (track) track.setAttribute('aria-valuenow', String(progressPct));
+        } else {
+          progressSlot.innerHTML = `<div class="update-progress${cfg.indeterminate ? ' is-indeterminate' : ''}" role="progressbar" aria-valuenow="${progressPct}" aria-valuemin="0" aria-valuemax="100">
+              <span class="update-progress__bar" style="width:${cfg.indeterminate ? '40' : progressPct}%"></span>
+            </div>
+            ${cfg.indeterminate ? '' : `<div class="update-progress__percent">${progressPct}%</div>`}`;
+        }
+      } else {
+        progressSlot.classList.add('is-collapsed');
+        progressSlot.innerHTML = '';
+      }
+    }
+
+    if (actionsEl) {
+      const bits = [];
+      if (cfg.showUpdate) bits.push('<button id="updateNowBtn" class="btn btn-primary" type="button">Update</button>');
+      if (cfg.showRetry) bits.push('<button id="updateRetryBtn" class="btn btn-primary" type="button">Retry</button>');
+      if (cfg.showDetails) bits.push('<button id="updateDetailsBtn" class="btn btn-secondary" type="button">Details</button>');
+      actionsEl.innerHTML = bits.join('');
+    }
+  }
+
+  function revealUpdatePromptHost(host, { animateIn }) {
+    host.classList.remove('is-hiding');
+    if (animateIn && !host.classList.contains('is-visible')) {
+      host.classList.remove('is-visible');
+      void host.offsetHeight;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => host.classList.add('is-visible'));
+      });
+    } else {
+      host.classList.add('is-visible');
+    }
+  }
+
+  function swapUpdateBannerContent(banner, cfg) {
+    const sameState = banner.dataset.updateState === updateUIState;
+    if (sameState) {
+      paintUpdateBanner(banner, cfg);
+      return;
+    }
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      paintUpdateBanner(banner, cfg);
+      return;
+    }
+    banner.classList.add('is-swapping');
+    window.setTimeout(() => {
+      paintUpdateBanner(banner, cfg);
+      requestAnimationFrame(() => banner.classList.remove('is-swapping'));
+    }, 160);
   }
 
   function showUpdateReadyBanner() {
@@ -1095,113 +1310,23 @@
       clearTimeout(updateBannerHideTimer);
       updateBannerHideTimer = null;
     }
-    const animateIn = !host.classList.contains('is-visible');
+
+    const wasVisible = host.classList.contains('is-visible');
+    const hadBanner = !!host.querySelector('.update-banner');
+    const animateIn = !wasVisible;
     updateUIState = state;
+    const cfg = getUpdateBannerConfig(state, opts);
 
-    if (typeof opts.progress === 'number') updateProgressValue = opts.progress;
+    const banner = ensureUpdateBannerShell(host);
+    if (!banner) return;
 
-    const copy = {
-      checking: {
-        title: 'Checking for updates',
-        status: opts.statusLine || 'Connecting to the update server…',
-        showProgress: true,
-        progress: Math.max(0, Math.min(100, updateProgressValue || 0)),
-        indeterminate: false,
-        showUpdate: false,
-        showDetails: false,
-        bannerClass: ''
-      },
-      downloading: {
-        title: 'Downloading update',
-        status: opts.statusLine || 'Please wait…',
-        showProgress: true,
-        progress: Math.max(0, Math.min(100, updateProgressValue || 0)),
-        indeterminate: false,
-        showUpdate: false,
-        showDetails: false,
-        bannerClass: ''
-      },
-      ready: {
-        title: `Update available · ${formatAppVersionLabel()}`,
-        status: opts.statusLine || `Build ${getDisplayUpdateBuild()} is ready. Tap Update to install.`,
-        showProgress: false,
-        progress: 0,
-        indeterminate: false,
-        showUpdate: true,
-        showDetails: false,
-        bannerClass: 'update-banner--ready'
-      },
-      installing: {
-        title: 'Installing update',
-        status: opts.statusLine || 'Restarting the app…',
-        showProgress: false,
-        progress: 0,
-        indeterminate: false,
-        showUpdate: false,
-        showDetails: false,
-        bannerClass: ''
-      },
-      uptodate: {
-        title: `${formatAppVersionLabel()} · up to date`,
-        status: opts.statusLine || getFriendlyUptodateStatus(),
-        showProgress: false,
-        progress: 0,
-        showUpdate: false,
-        showDetails: true,
-        bannerClass: 'update-banner--uptodate'
-      },
-      error: {
-        title: 'Update check failed',
-        status: opts.statusLine || 'The download was interrupted. Wait a moment, then tap Retry.',
-        showProgress: false,
-        showUpdate: false,
-        showDetails: false,
-        showRetry: true,
-        bannerClass: ''
-      }
-    };
-
-    const cfg = copy[state] || copy.ready;
-    const progress = typeof cfg.progress === 'number' ? cfg.progress : updateProgressValue;
-    const progressPct = Math.round(progress);
-    const progressHtml = cfg.showProgress
-      ? `<div class="update-progress${cfg.indeterminate ? ' is-indeterminate' : ''}" role="progressbar" aria-valuenow="${progressPct}" aria-valuemin="0" aria-valuemax="100">
-          <span class="update-progress__bar" style="width:${cfg.indeterminate ? '40' : progressPct}%"></span>
-        </div>
-        ${cfg.indeterminate ? '' : `<div class="update-progress__percent">${progressPct}%</div>`}`
-      : '';
-
-    const actionsHtml = (cfg.showUpdate || cfg.showDetails || cfg.showRetry)
-      ? `<div class="update-banner__actions">
-          ${cfg.showUpdate ? '<button id="updateNowBtn" class="btn btn-primary" type="button">Update</button>' : ''}
-          ${cfg.showRetry ? '<button id="updateRetryBtn" class="btn btn-primary" type="button">Retry</button>' : ''}
-          ${cfg.showDetails ? '<button id="updateDetailsBtn" class="btn btn-secondary" type="button">Details</button>' : ''}
-        </div>`
-      : '';
-
-    host.innerHTML = `<div class="update-banner ${cfg.bannerClass}" role="status" aria-live="polite">
-      <div class="update-banner__top">
-        <div class="update-banner__body">
-          <div class="update-banner__title">${cfg.title}</div>
-          <p class="update-banner__status">${cfg.status}</p>
-        </div>
-      </div>
-      ${progressHtml}
-      ${actionsHtml}
-    </div>`;
-    bindUpdateBannerActions();
-
-    if (animateIn) {
-      host.classList.remove('is-visible');
-      void host.offsetHeight;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          host.classList.add('is-visible');
-        });
-      });
+    if (wasVisible && hadBanner) {
+      swapUpdateBannerContent(banner, cfg);
     } else {
-      host.classList.add('is-visible');
+      paintUpdateBanner(banner, cfg);
     }
+
+    revealUpdatePromptHost(host, { animateIn });
     refreshUpdateMenuBadge();
   }
 
@@ -1420,15 +1545,19 @@
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reducedMotion) {
       host.innerHTML = '';
-      host.classList.remove('is-visible');
+      host.classList.remove('is-visible', 'is-hiding');
+      updateUIState = 'idle';
       return;
     }
 
+    host.classList.add('is-hiding');
     host.classList.remove('is-visible');
     updateBannerHideTimer = setTimeout(() => {
       host.innerHTML = '';
-      host.classList.remove('is-visible');
+      host.classList.remove('is-visible', 'is-hiding');
+      host._updateActionsBound = false;
       updateBannerHideTimer = null;
+      if (updateUIState === 'uptodate') updateUIState = 'idle';
     }, UPDATE_BANNER_HIDE_MS);
   }
 
@@ -1492,8 +1621,15 @@
     });
 
     await activationDone;
-    renderUpdateBanner('installing', { statusLine: 'Update installed. Restarting…' });
-    await pause(600);
+    const host = document.getElementById('updatePromptHost');
+    const banner = host?.querySelector('.update-banner');
+    const statusEl = banner?.querySelector('.update-banner__status');
+    if (statusEl) {
+      statusEl.textContent = 'Update installed. Restarting…';
+    } else {
+      renderUpdateBanner('installing', { statusLine: 'Update installed. Restarting…' });
+    }
+    await pause(650);
     reloadOnce();
   }
 

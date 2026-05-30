@@ -1,12 +1,24 @@
 {
-  "latest": "v49",
-  "appVersion": "3.2.0",
+  "latest": "v50",
+  "appVersion": "3.2.1",
   "highlights": [
-    "Hotel Finder team access code — Worker blocks searches without your secret token.",
-    "Optional daily search cap per IP on the Worker (BOOKING_DAILY_LIMIT_PER_IP).",
-    "Deploy booking-worker-48 on Cloudflare + v49 app on GitHub."
+    "Fix bottom tab bar missing on desktop and mobile (layout pinned to viewport).",
+    "Update banner transitions smoothed (installing → up to date).",
+    "Upload v50 app to GitHub; Worker unchanged if already on booking-worker-48."
   ],
   "builds": {
+    "v50": {
+      "intro": "Investigator Toolbox 3.2.1 — Tab bar layout fix.",
+      "sections": [
+        {
+          "heading": "Layout",
+          "items": [
+            "Bottom tab bar (Calculator, Hotels, Requests, Camera) stays visible on desktop and installed PWA.",
+            "App shell uses flex + pinned tab bar instead of fragile viewport grid sizing."
+          ]
+        }
+      ]
+    },
     "v49": {
       "intro": "Investigator Toolbox 3.2.0 — Hotel Finder access lock.",
       "sections": [
