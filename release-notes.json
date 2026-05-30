@@ -1,10 +1,23 @@
 {
-  "latest": "v106",
+  "latest": "v107",
   "appVersion": "3.5.4",
   "highlights": [
-    "Location and Notifications settings with on/off toggles for Toolbox features."
+    "Settings pages show matching icons; Location and Notifications are separate."
   ],
   "builds": {
+    "v107": {
+      "intro": "Investigator Toolbox 3.5.4 — settings UI polish.",
+      "sections": [
+        {
+          "heading": "Settings",
+          "items": [
+            "Each settings page shows the same icon as its menu row next to the title.",
+            "Location and Notifications are separate settings screens.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v107)."
+          ]
+        }
+      ]
+    },
     "v106": {
       "intro": "Investigator Toolbox 3.5.4 — Location & Notifications settings.",
       "sections": [
