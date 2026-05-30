@@ -1,10 +1,28 @@
 {
-  "latest": "v94",
+  "latest": "v95",
   "appVersion": "3.5.4",
   "highlights": [
-    "Hotel Finder: show hotels when search rates are missing; better incl. tax detection."
+    "Clearer search status text; Software Update slides up from the bottom."
   ],
   "builds": {
+    "v95": {
+      "intro": "Investigator Toolbox 3.5.4 — wording and update screen motion.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Status line uses “under $200/night incl. tax” instead of ≤ and drops “(Canada only)”."
+          ]
+        },
+        {
+          "heading": "Settings",
+          "items": [
+            "Software Update and up-to-date view slide up from the bottom (not sideways).",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, release-notes.json (v95)."
+          ]
+        }
+      ]
+    },
     "v94": {
       "intro": "Investigator Toolbox 3.5.4 — hotels without scraped rates still list.",
       "sections": [
