@@ -1,10 +1,23 @@
 {
-  "latest": "v70",
-  "appVersion": "3.4.8",
+  "latest": "v71",
+  "appVersion": "3.4.9",
   "highlights": [
-    "Hotel Finder: ScraperAPI Async — automated search up to 4 minutes, no manual Booking fallback."
+    "Hotel Finder: stricter hotels & motels only filter — excludes B&Bs, guest houses, apartments."
   ],
   "builds": {
+    "v71": {
+      "intro": "Investigator Toolbox 3.4.9 — Hotels & motels only filter fix.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Hotels & motels only uses a strict whitelist (excludes B&B, guest house, apartment, etc.).",
+            "Worker 55 improves property-type parsing from Booking.com cards.",
+            "Deploy booking-worker-55 on Cloudflare plus the three GitHub files."
+          ]
+        }
+      ]
+    },
     "v70": {
       "intro": "Investigator Toolbox 3.4.8 — Booking search uses ScraperAPI Async (worker 53).",
       "sections": [
@@ -13,7 +26,7 @@
           "items": [
             "Searches run via ScraperAPI Async (retries until success or timeout) — fixes Cloudflare 30s cap.",
             "App polls automatically; one Search tap, no manual Booking.com step.",
-            "Deploy booking-worker-53 on Cloudflare plus the three GitHub files."
+            "Deploy booking-worker-54 on Cloudflare (fixes async API key bug in v53)."
           ]
         }
       ]

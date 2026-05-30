@@ -1428,8 +1428,8 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  const BUNDLED_APP_VERSION = '3.4.8';
-  const BUNDLED_PWA_CACHE_VERSION = 'v70';
+  const BUNDLED_APP_VERSION = '3.4.9';
+  const BUNDLED_PWA_CACHE_VERSION = 'v71';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -4100,8 +4100,8 @@ textarea:focus, textarea:focus-visible {
       );
     }
     const build = parseWorkerBuildNumber(wv);
-    if (build < 53 && /500|automatic retries|timed out|protected|async/i.test(base)) {
-      return `${base} Deploy booking-worker-53 on Cloudflare (you have ${wv}).`;
+    if (build < 54 && /500|automatic retries|timed out|protected|async|401|API key/i.test(base)) {
+      return `${base} Deploy booking-worker-54 on Cloudflare (you have ${wv}).`;
     }
     if (/protected|ScraperAPI blocked/i.test(base)) {
       const status = data?.scraperStatus != null ? ` HTTP ${data.scraperStatus}` : '';
@@ -4110,32 +4110,43 @@ textarea:focus, textarea:focus-visible {
     return base ? `${base} (${wv})` : `Booking.com search failed (${wv}).`;
   }
 
-  function isLikelyNonHotelListing(name) {
-    const n = String(name || '').toLowerCase();
-    if (/\b(hotel|motel|inn|lodge|resort)\b/i.test(n)) return false;
-    return (
-      /\b(apartment|apartments|condo|condominium|studio|chalet|cottage|villa|hostel|homestay)\b/i.test(n)
-      || /\b(private room|shared room|guesthouse|guest house|vacation home|holiday home|aparthotel|apart hotel)\b/i.test(n)
-      || /\b(entire (home|place|unit|apartment|apt)|residential|townhouse|bungalow|farm stay)\b/i.test(n)
-      || /\b(\d+\s*bedroom|bedroom\s*\d|one bedroom|two bedroom|three bedroom|1br|2br|3br)\b/i.test(n)
-    );
-  }
+  const NON_HOTEL_ACCOMMODATION_RE =
+    /\b(apartments?|hostels?|holiday homes?|vacation homes?|villas?|cottages?|guest houses?|homestays?|condos?|condominiums?|aparthotels?|apart hotels?|residences?|boats?|campsites?|tents?|bed\s*(?:and|&)\s*breakfasts?|b\s*&\s*b|bnbs?|lofts?|townhouses?|bungalows?|farm stays?|country houses?|capsules?|students?|chalets?)\b/i;
+  const HOTEL_MOTEL_TYPE_RE = /\b(hotels?|motels?|resorts?)\b/i;
+  const INN_LODGE_TYPE_RE = /\b(inns?|lodges?)\b/i;
 
   function isLikelyNonHotelFromUrl(url) {
     const path = String(url || '').toLowerCase();
-    return /\b(apartment|apartments|condo|condominium|studio|chalet|villa|hostel|homestay|guest-house|guesthouse|bnb|residence|cottage|holiday-home|vacation-home|townhouse|bungalow|loft)\b/.test(path);
+    return /\b(apartment|apartments|condo|condominium|studio|chalet|villa|hostel|homestay|guest-house|guesthouse|bnb|bed-and-breakfast|bedandbreakfast|residence|cottage|holiday-home|vacation-home|townhouse|bungalow|loft)\b/.test(
+      path
+    );
   }
 
+  /** Strict whitelist: hotels, motels, and Booking “Inn”/“Lodge” types — not B&Bs, apartments, guest houses. */
   function isHotelOrMotelListing(hotel) {
-    const type = String(hotel?.propertyType || '').toLowerCase();
-    if (type) {
-      if (/\b(apartments?|hostels?|holiday homes?|vacation homes?|villas?|cottages?|guest houses?|homestays?|condos?|aparthotels?|residences?|boats?|campsites?|tents?|bed and breakfasts?|bnbs?|lofts?|townhouses?|bungalows?|farm stays?|country houses?|students?|capsules?)\b/.test(type)) {
-        return false;
-      }
-      if (/\b(hotels?|motels?|inns?|resorts?|lodges?)\b/.test(type)) return true;
+    const type = String(hotel?.propertyType || '').toLowerCase().trim();
+    const name = String(hotel?.name || '').toLowerCase();
+    const url = String(hotel?.url || '').toLowerCase();
+
+    if (NON_HOTEL_ACCOMMODATION_RE.test(type)) return false;
+    if (HOTEL_MOTEL_TYPE_RE.test(type)) return true;
+    if (INN_LODGE_TYPE_RE.test(type)) return true;
+    if (type) return false;
+
+    if (NON_HOTEL_ACCOMMODATION_RE.test(name) || /\b(b&b|b\s*&\s*b)\b/i.test(name)) return false;
+    if (/\b(guest\s*house|guesthouse|homestay|hostel|aparthotel|apart hotel)\b/i.test(name)) return false;
+    if (
+      /\b(apartment|condo|studio|chalet|cottage|villa|private room|shared room|vacation home|holiday home|entire (home|place|unit)|\d+\s*bedroom|1br|2br|3br)\b/i.test(
+        name
+      )
+    ) {
+      return false;
     }
-    if (isLikelyNonHotelFromUrl(hotel?.url)) return false;
-    return !isLikelyNonHotelListing(hotel?.name);
+    if (isLikelyNonHotelFromUrl(url)) return false;
+
+    if (/\b(hotel|motel)\b/i.test(name)) return true;
+    if (/\b(inn|lodge|resort)\b/i.test(name)) return true;
+    return false;
   }
 
   function describeFilterMissMessage() {
@@ -4248,12 +4259,12 @@ textarea:focus, textarea:focus-visible {
       let data = await response.json();
 
       const build = parseWorkerBuildNumber(data.workerVersion);
-      if (build < 53 && !data.pending) {
+      if (build < 54 && !data.pending) {
         return {
           ok: false,
           hotels: [],
           error:
-            `Deploy booking-worker-53 on Cloudflare for reliable automated search (you have ${data.workerVersion || 'unknown'}).`,
+            `Deploy booking-worker-54 on Cloudflare for reliable automated search (you have ${data.workerVersion || 'unknown'}).`,
         };
       }
 
