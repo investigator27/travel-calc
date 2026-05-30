@@ -1,10 +1,61 @@
 {
-  "latest": "v88",
+  "latest": "v92",
   "appVersion": "3.5.4",
   "highlights": [
-    "Hotel Finder: show your real city on the location button and on each hotel card."
+    "Hotel Finder: up to 10 results, Viewed badge, cleaner hotel cards."
   ],
   "builds": {
+    "v92": {
+      "intro": "Investigator Toolbox 3.5.4 — cleaner hotel result cards.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Removed the extra line under each hotel (Opens on Booking.com for your dates…).",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v92)."
+          ]
+        }
+      ]
+    },
+    "v91": {
+      "intro": "Investigator Toolbox 3.5.4 — hotel list cap and Viewed badge.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Removed Number of Matches — shows up to 10 qualifying hotels per search.",
+            "Status line notes when more matched (e.g. showing 10 of 14).",
+            "Open on Booking.com marks the card Viewed for this browser session.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v91)."
+          ]
+        }
+      ]
+    },
+    "v90": {
+      "intro": "Investigator Toolbox 3.5.4 — fix location reset after Allow.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Recognizes British Columbia and other full province names from GPS (not only BC).",
+            "Search can request GPS for you; failed lookup shows Tap to retry instead of Select.",
+            "Deploy surveillance-travel-calculator.html and service-worker.js (v90)."
+          ]
+        }
+      ]
+    },
+    "v89": {
+      "intro": "Investigator Toolbox 3.5.4 — readable location labels.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Location button and hotel cards show street + city + province (e.g. 123 Main St, Kelowna, BC) or city + province — never raw lat/lng.",
+            "Deploy surveillance-travel-calculator.html and service-worker.js (v89)."
+          ]
+        }
+      ]
+    },
     "v88": {
       "intro": "Investigator Toolbox 3.5.4 — show where you searched from.",
       "sections": [

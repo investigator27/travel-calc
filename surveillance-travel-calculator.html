@@ -311,6 +311,7 @@
     .hotel-card__rank{font-size:var(--text-xs);font-weight:700;color:var(--color-text-faint);flex-shrink:0}
     .hotel-card__badges{display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-1);flex-shrink:0}
     .hotel-card__score{font-size:var(--text-xs);font-weight:700;color:#fff;background:#003b95;border-radius:6px;padding:.2rem .45rem;white-space:nowrap}
+    .hotel-card__viewed{font-size:var(--text-xs);font-weight:700;color:var(--color-text-muted);background:color-mix(in srgb,var(--color-text) 10%,transparent);border:1px solid color-mix(in srgb,var(--color-text) 18%,transparent);border-radius:6px;padding:.2rem .45rem;white-space:nowrap}
     .hotel-meta{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;font-size:var(--text-sm);color:var(--color-text-muted)}
     .hotel-meta__sub{font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)}
     .hotel-card--area-search{border-style:dashed}
@@ -910,27 +911,6 @@
         </div>
 
         <div class="field">
-          <label for="hotelMatchCountBtn">Number of Matches</label>
-          <div class="menu-wrap city-wrap">
-            <button type="button" id="hotelMatchCountBtn" class="city-btn" aria-expanded="false" aria-haspopup="listbox">
-              <span id="hotelMatchCountLabel">5</span>
-            </button>
-            <div id="hotelMatchCountDrop" class="menu-panel city-panel" hidden role="listbox">
-              <button type="button" class="menu-item city-item" data-picker-value="1">1</button>
-              <button type="button" class="menu-item city-item" data-picker-value="3">3</button>
-              <button type="button" class="menu-item city-item" data-picker-value="5">5</button>
-              <button type="button" class="menu-item city-item" data-picker-value="8">8</button>
-            </div>
-            <select id="hotelMatchCount" hidden aria-hidden="true">
-              <option value="1">1</option>
-              <option value="3">3</option>
-              <option value="5" selected>5</option>
-              <option value="8">8</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="field">
           <label for="hotelMaxDistanceBtn">Max Distance From Location</label>
           <div class="menu-wrap city-wrap">
             <button type="button" id="hotelMaxDistanceBtn" class="city-btn" aria-expanded="false" aria-haspopup="listbox">
@@ -1433,7 +1413,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v90';
+  const BUNDLED_PWA_CACHE_VERSION = 'v92';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3443,6 +3423,8 @@ textarea:focus, textarea:focus-visible {
       ON: 200, PE: 200, QC: 200, SK: 200, YT: 200
     },
     searchRadiusKm: 60,
+    /** Max hotel cards shown per search (same scrape cost either way). */
+    maxListings: 10,
     recipients: [
       { name: 'Continuous Improvment Manager', email: 'mitchell.slaney@intrepid.ca' },
       { name: 'Mitchell Slaney', email: 'mitchell.slaney@intrepid.ca' }
@@ -3457,6 +3439,7 @@ textarea:focus, textarea:focus-visible {
   const $ = (id) => document.getElementById(id);
 
   const HOTEL_LOCATION_CURRENT = 'current';
+  const HOTEL_VIEWED_STORAGE_KEY = 'hotelFinderViewed';
   const MIN_FILTER_WORKER_BUILD = 51;
   const MIN_NFLT_FILTER_WORKER_BUILD = 57;
   let workerFilterSupportCache = null;
@@ -3468,7 +3451,6 @@ textarea:focus, textarea:focus-visible {
     searchLocation: $('hotelSearchLocation'),
     checkin: $('hotelCheckin'),
     checkout: $('hotelCheckout'),
-    matchCount: $('hotelMatchCount'),
     maxDistance: $('hotelMaxDistance'),
     freeBreakfast: $('hotelFreeBreakfast'),
     freeParking: $('hotelFreeParking'),
@@ -5517,14 +5499,75 @@ out body;`;
     };
   }
 
+  function getHotelMaxListings() {
+    const n = Number(HOTEL_CONFIG.maxListings);
+    return Number.isFinite(n) && n > 0 ? Math.min(10, Math.floor(n)) : 10;
+  }
+
+  function hotelListingViewKey(hotel) {
+    const raw = String(hotel?.bookingPropertyUrl || hotel?.listingUrl || '').trim();
+    if (raw) {
+      try {
+        const path = new URL(raw, 'https://www.booking.com').pathname.toLowerCase();
+        const m = path.match(/\/hotel\/[a-z]{2}\/[^/]+\.[a-z.]+/);
+        if (m) return m[0];
+      } catch {
+        /* ignore */
+      }
+    }
+    return hotel?.id ? `id:${hotel.id}` : '';
+  }
+
+  function loadViewedHotelKeys() {
+    try {
+      const raw = sessionStorage.getItem(HOTEL_VIEWED_STORAGE_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(list) ? list.filter(Boolean) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function isHotelViewed(hotel) {
+    const key = hotelListingViewKey(hotel);
+    return key ? loadViewedHotelKeys().has(key) : false;
+  }
+
+  function markHotelViewed(hotel) {
+    const key = hotelListingViewKey(hotel);
+    if (!key) return;
+    const keys = loadViewedHotelKeys();
+    keys.add(key);
+    try {
+      sessionStorage.setItem(HOTEL_VIEWED_STORAGE_KEY, JSON.stringify([...keys]));
+    } catch {
+      /* storage full or blocked */
+    }
+  }
+
+  function viewedBadgeHtml(hotel) {
+    return isHotelViewed(hotel)
+      ? '<span class="hotel-card__viewed">Viewed</span>'
+      : '';
+  }
+
+  function ensureViewedBadgeOnCard(hotelId) {
+    const card = els.results?.querySelector(`.hotel-card[data-hotel-id="${CSS.escape(hotelId)}"]`);
+    if (!card) return;
+    const badges = card.querySelector('.hotel-card__badges');
+    if (!badges || badges.querySelector('.hotel-card__viewed')) return;
+    badges.insertAdjacentHTML('beforeend', '<span class="hotel-card__viewed">Viewed</span>');
+  }
+
   function rankBookingHotels(meta, geo, rawHotels, areaSearchUrl) {
-    const requested = Math.max(1, Number.parseInt(els.matchCount?.value || '3', 10));
+    const maxListings = getHotelMaxListings();
     const filtered = applyClientHotelFilters(rawHotels);
 
     if (!filtered.length) {
       return {
         items: [],
-        requested,
+        maxListings,
+        totalMatched: 0,
         verifyMode: 'blocked',
         inventoryError: describeFilterMissMessage(rawHotels),
         areaSearchUrl
@@ -5574,8 +5617,9 @@ out body;`;
     const withinRadiusBudget = withinRadius.filter(budgetOk);
     if (withinRadiusBudget.length) {
       return {
-        items: withinRadiusBudget.slice(0, requested),
-        requested,
+        items: withinRadiusBudget.slice(0, maxListings),
+        maxListings,
+        totalMatched: withinRadiusBudget.length,
         verifyMode: 'booking',
         budgetCap,
         inventoryCount: filtered.length,
@@ -5591,8 +5635,9 @@ out body;`;
 
     if (beyondRadiusBudget.length) {
       return {
-        items: beyondRadiusBudget.slice(0, requested),
-        requested,
+        items: beyondRadiusBudget.slice(0, maxListings),
+        maxListings,
+        totalMatched: beyondRadiusBudget.length,
         verifyMode: 'expanded',
         budgetCap,
         inventoryCount: filtered.length,
@@ -5607,7 +5652,8 @@ out body;`;
 
     return {
       items: [],
-      requested,
+      maxListings,
+      totalMatched: 0,
       verifyMode: 'over-budget',
       budgetCap,
       nearbyCount: withinRadius.length,
@@ -5619,9 +5665,8 @@ out body;`;
   }
 
   async function fetchAndRankHotels(meta, geo) {
-    const requested = Math.max(1, Number.parseInt(els.matchCount?.value || '3', 10));
     const ctx = lastSearchContext;
-    if (!ctx) return { items: [], requested, verifyMode: 'none' };
+    if (!ctx) return { items: [], maxListings: getHotelMaxListings(), totalMatched: 0, verifyMode: 'none' };
 
     const result = await loadBookingHotels(ctx, geo);
     const areaSearchUrl = buildBookingAreaSearchUrl(ctx, geo);
@@ -5630,7 +5675,8 @@ out body;`;
       lastSearchRankState = null;
       return {
         items: [],
-        requested,
+        maxListings: getHotelMaxListings(),
+        totalMatched: 0,
         verifyMode: 'blocked',
         inventoryError: result.error,
         areaSearchUrl
@@ -5645,14 +5691,15 @@ out body;`;
     if (!lastSearchRankState) return;
     const { meta, geo, rawHotels, areaSearchUrl } = lastSearchRankState;
     const ranked = rankBookingHotels(meta, geo, rawHotels, areaSearchUrl);
-    renderHotelResults(ranked.items, meta, geo, ranked.requested, {
+    renderHotelResults(ranked.items, meta, geo, {
       verifyMode: ranked.verifyMode,
       inventoryError: ranked.inventoryError,
       areaSearchUrl: ranked.areaSearchUrl,
       budgetCap: ranked.budgetCap,
       nearbyCount: ranked.nearbyCount,
       overBudgetCount: ranked.overBudgetCount,
-      noPriceCount: ranked.noPriceCount
+      noPriceCount: ranked.noPriceCount,
+      totalMatched: ranked.totalMatched
     }, { skipScroll: true });
   }
 
@@ -5714,13 +5761,11 @@ out body;`;
     buildEmailDraft(hotel, meta);
   }
 
-  function renderHotelResults(items, meta, geo, requestedCount, resultMeta = {}, renderOpts = {}) {
+  function renderHotelResults(items, meta, geo, resultMeta = {}, renderOpts = {}) {
     lastResults = items;
     const radiusKm = getMaxDistanceKm();
-    const requested = Math.max(1, Number.parseInt(String(requestedCount || els.matchCount?.value || '3'), 10));
+    const totalMatched = Number(resultMeta.totalMatched) || items.length;
     const filtersActive = hotelFiltersAreActive();
-    const listingHint = 'Opens on Booking.com for your dates — confirm room type and total';
-
     if (!items.length) {
       els.results.innerHTML = '';
       selectedHotel = null;
@@ -5801,6 +5846,7 @@ out body;`;
       const reviewBadge = hotel.reviewScore
         ? `<span class="hotel-card__score" title="${escapeHtml(hotel.reviewCount != null ? `${hotel.reviewCount} reviews on Booking.com` : 'Booking.com review score')}">${escapeHtml(hotel.reviewScore)}${hotel.reviewWord ? ` ${escapeHtml(hotel.reviewWord)}` : ''}</span>`
         : '';
+      const viewedBadge = viewedBadgeHtml(hotel);
       const reviewCountLine = hotel.reviewCount != null
         ? `<span>${escapeHtml(`${hotel.reviewCount.toLocaleString()} reviews`)}</span>`
         : '';
@@ -5812,11 +5858,11 @@ out body;`;
             <div class="hotel-meta">
               <span>${escapeHtml(`${distancePart}${pricePart}`)}</span>
               ${reviewCountLine}
-              <span>${escapeHtml(listingHint)}</span>
             </div>
           </div>
           <div class="hotel-card__badges">
             <span class="hotel-card__rank">#${index + 1}</span>
+            ${viewedBadge}
             ${reviewBadge}
           </div>
         </div>
@@ -5828,17 +5874,19 @@ out body;`;
     }).join('');
     document.querySelectorAll('.hotel-card').forEach((c) => c.classList.remove('selected'));
 
-    const countLabel = items.length === 1 ? '1 Canadian hotel' : `${items.length} Canadian hotels`;
+    const shown = items.length;
+    const countLabel = shown === 1 ? '1 hotel' : `${shown} hotels`;
+    const more = totalMatched > shown ? ` (showing ${shown} of ${totalMatched})` : '';
     const capLabel = resultMeta.budgetCap ? formatMoney(resultMeta.budgetCap) : '$200.00';
     let headline;
     if (resultMeta.verifyMode === 'expanded') {
       headline =
-        `No Canadian hotels ≤ ${capLabel}/night incl. tax within ${radiusKm} km — ` +
-        `showing the nearest ${countLabel} farther out (still in Canada).`;
+        `No hotels ≤ ${capLabel}/night incl. tax within ${radiusKm} km — ` +
+        `showing the nearest ${countLabel}${more} farther out (Canada only).`;
     } else {
       const near = areaLabel ? ` of ${areaLabel}` : '';
       headline =
-        `Found ${countLabel} on Booking.com within ${radiusKm} km${near} (Canada only), ≤ ${capLabel}/night incl. tax.`;
+        `Found ${countLabel}${more} within ${radiusKm} km${near} at ≤ ${capLabel}/night incl. tax (Canada only).`;
     }
     setStatus(headline, 'success');
     if (!renderOpts.skipScroll) scrollToHotelResults();
@@ -5891,14 +5939,15 @@ out body;`;
       meta.destination = ctx.destination;
       meta.areaLabel = syncHotelLocationPickerLabel(ctx, geo);
       const ranked = await fetchAndRankHotels(meta, geo);
-      renderHotelResults(ranked.items, meta, geo, ranked.requested, {
+      renderHotelResults(ranked.items, meta, geo, {
         verifyMode: ranked.verifyMode,
         inventoryError: ranked.inventoryError,
         areaSearchUrl: ranked.areaSearchUrl,
         budgetCap: ranked.budgetCap,
         nearbyCount: ranked.nearbyCount,
         overBudgetCount: ranked.overBudgetCount,
-        noPriceCount: ranked.noPriceCount
+        noPriceCount: ranked.noPriceCount,
+        totalMatched: ranked.totalMatched
       });
     } catch (err) {
       stopHotelSearchProgress();
@@ -6004,8 +6053,6 @@ out body;`;
   function clearHotelForm() {
     if (els.checkin) els.checkin.value = '';
     if (els.checkout) els.checkout.value = '';
-    if (els.matchCount) els.matchCount.value = '5';
-    $('hotelMatchCountLabel').textContent = '5';
     if (els.maxDistance) els.maxDistance.value = '25';
     $('hotelMaxDistanceLabel').textContent = '25 km';
     if (els.clientBilled) els.clientBilled.value = 'No';
@@ -6101,6 +6148,8 @@ out body;`;
         setStatus('Property page link not available for this hotel. Run Search again after deploying booking-worker-58.', 'error');
         return;
       }
+      markHotelViewed(hotel);
+      ensureViewedBadgeOnCard(hotel.id);
       window.open(listingUrl, '_blank', 'noopener,noreferrer');
       return;
     }
@@ -6125,14 +6174,6 @@ out body;`;
 
   buildRecipientPicker();
   loadInvestigatorProfile();
-
-  initPicker({
-    button: $('hotelMatchCountBtn'),
-    panel: $('hotelMatchCountDrop'),
-    hidden: els.matchCount,
-    label: $('hotelMatchCountLabel'),
-    onChange: refreshEmailDraft
-  });
 
   initPicker({
     button: $('hotelMaxDistanceBtn'),
@@ -6168,9 +6209,4 @@ out body;`;
   hideEmailSectionCollapsible();
 
   syncClientBilledField();
-  setEmailActionsEnabled(false);
-})();
-</script>
-
-</body>
-</html>
+  setEmail
