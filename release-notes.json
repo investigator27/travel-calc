@@ -1,10 +1,23 @@
 {
-  "latest": "v71",
-  "appVersion": "3.4.9",
+  "latest": "v72",
+  "appVersion": "3.5.0",
   "highlights": [
-    "Hotel Finder: stricter hotels & motels only filter — excludes B&Bs, guest houses, apartments."
+    "Hotel Finder: amenity filters applied on Booking.com search URL; cleaner search UX."
   ],
   "builds": {
+    "v72": {
+      "intro": "Investigator Toolbox 3.5.0 — Hotel search UX and amenity filters.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Breakfast, parking, cancellation, and hotels-only use Booking.com nflt filters (worker 57).",
+            "Search scrolls to progress; removed “automated 4 min” and booking-confirm hint text.",
+            "Deploy booking-worker-57 plus the three GitHub files (blocks search if worker too old)."
+          ]
+        }
+      ]
+    },
     "v71": {
       "intro": "Investigator Toolbox 3.4.9 — Hotels & motels only filter fix.",
       "sections": [

@@ -964,7 +964,7 @@
             <label class="settings-switch"><input id="hotelHotelsOnly" type="checkbox" aria-label="Hotels and motels only" /><span class="settings-switch__track"></span></label>
           </div>
         </div>
-        <div class="hint">Filters use badges shown on each Booking.com result card. If nothing matches, turn off a filter or search again. Always confirm on the Booking link before booking.</div>
+        <div class="hint">Filters are applied on the Booking.com search (same as on booking.com). If nothing matches, try a larger radius or turn off a filter.</div>
 
         <button class="btn btn-secondary" id="hotelClearBtn" type="button">Clear Form</button>
         <button class="btn btn-primary" id="searchHotelBtn" type="button">Search Hotels</button>
@@ -1277,7 +1277,6 @@
               <ol class="steps-list">
                 <li>Open <strong>Current Location</strong> and choose <strong>Current Location</strong> — allow access when your browser or device asks.</li>
                 <li>Set check-in and check-out dates, then tap <strong>Search Hotels</strong> (~30 seconds).</li>
-                <li>Confirm breakfast, parking, and cancellation on each hotel’s Booking.com link.</li>
                 <li>Choose a hotel and send the email draft to admin.</li>
               </ol>
             </div>
@@ -1428,8 +1427,8 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  const BUNDLED_APP_VERSION = '3.4.9';
-  const BUNDLED_PWA_CACHE_VERSION = 'v71';
+  const BUNDLED_APP_VERSION = '3.5.0';
+  const BUNDLED_PWA_CACHE_VERSION = 'v72';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3454,6 +3453,7 @@ textarea:focus, textarea:focus-visible {
 
   const HOTEL_LOCATION_CURRENT = 'current';
   const MIN_FILTER_WORKER_BUILD = 51;
+  const MIN_NFLT_FILTER_WORKER_BUILD = 57;
   let workerFilterSupportCache = null;
 
   const els = {
@@ -3495,6 +3495,8 @@ textarea:focus, textarea:focus-visible {
   let lastSearchContext = null;
   let lastSearchGeo = null;
   let lastSearchRankState = null;
+  /** Worker-applied Booking.com nflt keys: breakfast, parking, cancellation, hotels_motels */
+  let lastBookingFiltersApplied = [];
   let geocodeCache = { key: '', result: null };
   const pickerRegistry = [];
 
@@ -3524,13 +3526,16 @@ textarea:focus, textarea:focus-visible {
   function startHotelSearchProgress(phaseOrMessage) {
     const labels = {
       geocode: 'Getting your location…',
-      booking: 'Searching Booking.com… automated (up to 4 minutes).',
+      booking: 'Searching Booking.com…',
     };
     const msg = labels[phaseOrMessage] || String(phaseOrMessage || labels.booking);
     showHotelSearchProgress(msg);
   }
 
   function finishBookingWorkerPayload(data) {
+    if (Array.isArray(data?.bookingFiltersApplied)) {
+      lastBookingFiltersApplied = data.bookingFiltersApplied.slice();
+    }
     const rawHotels = Array.isArray(data.hotels)
       ? data.hotels
       : (data.hotels && typeof data.hotels === 'object' ? [data.hotels] : []);
@@ -3575,7 +3580,7 @@ textarea:focus, textarea:focus-visible {
 
     while (Date.now() - started < pollMaxMs) {
       const elapsed = Math.round((Date.now() - started) / 1000);
-      startHotelSearchProgress(`Searching Booking.com… ${elapsed}s (automated, up to 4 min)`);
+      startHotelSearchProgress(elapsed >= 2 ? `Searching Booking.com… ${elapsed}s` : 'booking');
 
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 25000);
@@ -3605,7 +3610,7 @@ textarea:focus, textarea:focus-visible {
     return {
       ok: false,
       hotels: [],
-      error: 'Booking.com search timed out after 4 minutes. Tap Search to try again.',
+      error: 'Booking.com search timed out. Tap Search to try again.',
     };
   }
 
@@ -4020,6 +4025,17 @@ textarea:focus, textarea:focus-visible {
     return new URL(`api/booking-search?${params}`, location.href).toString();
   }
 
+  function buildClientNfltChips() {
+    const chips = [];
+    if (els.hotelsOnly?.checked) {
+      chips.push('ht_id=204', 'ht_id=205');
+    }
+    if (els.freeBreakfast?.checked) chips.push('mealplan=1');
+    if (els.freeParking?.checked) chips.push('hotelfacility=2');
+    if (els.freeCancellation?.checked) chips.push('oos=1');
+    return chips;
+  }
+
   function buildBookingAreaSearchUrl(ctx, geo) {
     if (!ctx) return '';
     const u = new URL('https://www.booking.com/searchresults.html');
@@ -4034,6 +4050,8 @@ textarea:focus, textarea:focus-visible {
     u.searchParams.set('group_adults', '2');
     u.searchParams.set('no_rooms', '1');
     u.searchParams.set('selected_currency', 'CAD');
+    const nflt = buildClientNfltChips().join(';');
+    if (nflt) u.searchParams.set('nflt', nflt);
     return u.toString();
   }
 
@@ -4149,14 +4167,29 @@ textarea:focus, textarea:focus-visible {
     return false;
   }
 
-  function describeFilterMissMessage() {
+  function describeFilterMissMessage(rawHotels) {
+    const total = Array.isArray(rawHotels) ? rawHotels.length : 0;
     const parts = [];
     if (els.hotelsOnly?.checked) parts.push('hotels & motels only');
     if (els.freeBreakfast?.checked) parts.push('free breakfast');
     if (els.freeParking?.checked) parts.push('free parking');
     if (els.freeCancellation?.checked) parts.push('free cancellation');
     const list = parts.length ? parts.join(', ') : 'your filters';
-    return `No Booking.com listings on this page showed ${list}. Turn off a filter or try different dates.`;
+    const radiusKm = getMaxDistanceKm();
+    if (total > 0 && lastBookingFiltersApplied.length) {
+      return (
+        `Found ${total} hotel${total === 1 ? '' : 's'} on Booking.com with ${list} applied on the search, ` +
+        `but none fit within ${radiusKm} km and your budget. Try a larger radius or turn off one filter.`
+      );
+    }
+    if (total > 0) {
+      return `Found ${total} listings, but none showed ${list} on their result cards. Try fewer filters or a larger radius.`;
+    }
+    return `No hotels returned for this area and dates with ${list}. Try different dates or fewer filters.`;
+  }
+
+  function bookingUrlFilterActive(key) {
+    return lastBookingFiltersApplied.includes(key);
   }
 
   function parseWorkerBuildNumber(version) {
@@ -4185,12 +4218,22 @@ textarea:focus, textarea:focus-visible {
       const response = await fetch(url, { cache: 'no-store' });
       const data = await response.json();
       const build = parseWorkerBuildNumber(data.workerVersion);
+      const needsNflt = getHotelsComAmenityParams().length > 0;
       if (!data.filterSelfTest || build < MIN_FILTER_WORKER_BUILD || !data.allPassed) {
         workerFilterSupportCache = {
           ok: false,
           error:
             `Hotel filters need Cloudflare worker booking-worker-${MIN_FILTER_WORKER_BUILD}+ deployed. ` +
             `Live worker reports ${data.workerVersion || 'unknown'}. Deploy cloudflare/booking-worker.js, then retry.`,
+        };
+        return workerFilterSupportCache;
+      }
+      if (needsNflt && build < MIN_NFLT_FILTER_WORKER_BUILD) {
+        workerFilterSupportCache = {
+          ok: false,
+          error:
+            `Amenity filters need booking-worker-${MIN_NFLT_FILTER_WORKER_BUILD}+ (live: ${data.workerVersion || 'unknown'}). ` +
+            'Deploy cloudflare/booking-worker.js before searching — avoids a wasted ScraperAPI charge.',
         };
         return workerFilterSupportCache;
       }
@@ -4209,13 +4252,13 @@ textarea:focus, textarea:focus-visible {
     if (els.hotelsOnly?.checked) {
       list = list.filter((h) => isHotelOrMotelListing(h));
     }
-    if (els.freeBreakfast?.checked) {
+    if (els.freeBreakfast?.checked && !bookingUrlFilterActive('breakfast')) {
       list = list.filter((h) => h.freeBreakfast === true);
     }
-    if (els.freeParking?.checked) {
+    if (els.freeParking?.checked && !bookingUrlFilterActive('parking')) {
       list = list.filter((h) => h.freeParking === true);
     }
-    if (els.freeCancellation?.checked) {
+    if (els.freeCancellation?.checked && !bookingUrlFilterActive('cancellation')) {
       list = list.filter((h) => h.freeCancellation === true);
     }
     return list;
@@ -4241,9 +4284,7 @@ textarea:focus, textarea:focus-visible {
     }
     if (els.checkin?.value) params.set('chkin', els.checkin.value);
     if (els.checkout?.value) params.set('chkout', els.checkout.value);
-    // Do not send amenity codes to the Worker — Booking nflt URLs often fail on ScraperAPI
-    // while the same search without filters works. Breakfast/parking/cancellation: verify on
-    // the Booking.com link. "Hotels & motels only" is applied below after results return.
+    getHotelsComAmenityParams().forEach((code) => params.append('amenities', code));
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 45000);
@@ -4257,8 +4298,19 @@ textarea:focus, textarea:focus-visible {
       }
       if (!response.ok) throw new Error(`booking ${response.status}`);
       let data = await response.json();
+      if (Array.isArray(data.bookingFiltersApplied)) {
+        lastBookingFiltersApplied = data.bookingFiltersApplied.slice();
+      }
 
       const build = parseWorkerBuildNumber(data.workerVersion);
+      if (build < MIN_NFLT_FILTER_WORKER_BUILD && !data.pending && getHotelsComAmenityParams().length) {
+        return {
+          ok: false,
+          hotels: [],
+          error:
+            `Deploy booking-worker-${MIN_NFLT_FILTER_WORKER_BUILD} on Cloudflare for amenity filters on the search URL (you have ${data.workerVersion || 'unknown'}).`,
+        };
+      }
       if (build < 54 && !data.pending) {
         return {
           ok: false,
@@ -4475,37 +4527,22 @@ textarea:focus, textarea:focus-visible {
     const appContent = document.getElementById('appContent');
     if (!appContent) return;
     const statusEl = els.status;
-    const selectedField = els.selectedName?.closest('.field');
     const searchBtn = els.searchBtn;
-    requestAnimationFrame(() => {
+    const scrollOnce = () => {
+      const anchor =
+        statusEl && statusEl.classList.contains('show') && statusEl.classList.contains('searching')
+          ? statusEl
+          : searchBtn || statusEl;
+      if (!anchor) return;
       const containerRect = appContent.getBoundingClientRect();
-      const blocks = [searchBtn, statusEl, selectedField].filter((el) => {
-        if (!el) return false;
-        if (el.classList.contains('hidden')) return false;
-        return el.getBoundingClientRect().height > 0 || el === statusEl;
-      });
-      if (!blocks.length) return;
-
-      let minTop = Infinity;
-      let maxBottom = -Infinity;
-      blocks.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        minTop = Math.min(minTop, rect.top);
-        maxBottom = Math.max(maxBottom, rect.bottom);
-      });
-      if (!Number.isFinite(minTop)) return;
-
-      const viewportH = containerRect.height;
-      const blockHeight = maxBottom - minTop;
-      let scrollTop = minTop - containerRect.top + appContent.scrollTop - 12;
-      if (blockHeight > viewportH - 24) {
-        const anchor = (statusEl && statusEl.classList.contains('show')) ? statusEl : (searchBtn || statusEl);
-        if (anchor) {
-          scrollTop = anchor.getBoundingClientRect().top - containerRect.top + appContent.scrollTop - 12;
-        }
-      }
+      const rect = anchor.getBoundingClientRect();
+      const scrollTop = rect.top - containerRect.top + appContent.scrollTop - 16;
       appContent.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
-    });
+      try {
+        anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch { /* ignore */ }
+    };
+    requestAnimationFrame(() => requestAnimationFrame(scrollOnce));
   }
 
   function scrollToHotelResults() {
@@ -5044,7 +5081,7 @@ out body;`;
         items: [],
         requested,
         verifyMode: 'blocked',
-        inventoryError: describeFilterMissMessage(),
+        inventoryError: describeFilterMissMessage(rawHotels),
         areaSearchUrl
       };
     }
@@ -5076,8 +5113,9 @@ out body;`;
       };
     });
 
-    // Strict budget: only listings we can confirm are at or under the cap, incl. tax.
-    const budgetOk = (it) => budgetCap <= 0 || (it.perNightInclTax != null && it.perNightInclTax <= budgetCap);
+    // Budget: include listings at or under cap; if price was not scraped, still show (rate on Booking link).
+    const budgetOk = (it) =>
+      budgetCap <= 0 || it.perNightInclTax == null || it.perNightInclTax <= budgetCap;
     const withinRadius = mapped.filter((it) => it.distance == null || it.distance <= radiusKm);
     const withinBudget = withinRadius.filter(budgetOk);
 
@@ -5327,6 +5365,7 @@ out body;`;
     els.results.innerHTML = '';
     lastResults = [];
     lastSearchRankState = null;
+    lastBookingFiltersApplied = [];
     selectedHotel = null;
     lastTaxMeta = null;
     if (els.selectedName) els.selectedName.value = '';
@@ -5334,6 +5373,7 @@ out body;`;
     els.emailSubject.value = '';
     setEmailActionsEnabled(false);
     startHotelSearchProgress('booking');
+    scrollToHotelSearchActivity();
 
     const geo = lastSearchGeo;
     const ctx = lastSearchContext;
