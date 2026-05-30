@@ -1433,7 +1433,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v89';
+  const BUNDLED_PWA_CACHE_VERSION = 'v90';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3678,7 +3678,8 @@ textarea:focus, textarea:focus-visible {
     if (els.locationBtn) els.locationBtn.disabled = false;
 
     if (!located.ok) {
-      resetHotelLocationPicker();
+      if (els.searchLocation) els.searchLocation.value = '';
+      if (els.locationLabel) els.locationLabel.textContent = 'Tap to retry';
       setStatus(located.error || 'Could not get your location.', 'error');
       return false;
     }
@@ -3787,11 +3788,7 @@ textarea:focus, textarea:focus-visible {
 
     const parts = raw.split(',').map((p) => p.trim()).filter(Boolean);
     const provCode = parsed.province;
-    const provIdx = parts.findIndex((p) => {
-      const compact = p.replace(/\./g, '').toUpperCase();
-      if (compact === provCode) return true;
-      return String(CA_PROVINCE_NAMES[provCode] || '').toLowerCase() === p.toLowerCase();
-    });
+    const provIdx = parts.findIndex((p) => provinceCodeFromAddressText(p) === provCode);
     if (provIdx < 0) return parsed.label || '';
 
     const city = parsed.city;
@@ -3883,8 +3880,25 @@ textarea:focus, textarea:focus-visible {
 
   function syncHotelLocationPickerLabel(ctx, geo) {
     const text = resolveHotelAreaDisplayLabel(ctx, geo);
-    if (els.locationLabel) els.locationLabel.textContent = text;
+    if (els.locationLabel) {
+      els.locationLabel.textContent = text || 'Tap to retry';
+    }
     return text;
+  }
+
+  function delayMs(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function provinceCodeFromAddressText(text) {
+    const address = String(text || '');
+    const codeMatch = address.match(new RegExp(`\\b(${CA_PROVINCE_CODES})\\b`, 'i'));
+    if (codeMatch) return codeMatch[1].toUpperCase();
+    for (const [code, name] of Object.entries(CA_PROVINCE_NAMES)) {
+      const escaped = String(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(`\\b${escaped}\\b`, 'i').test(address)) return code;
+    }
+    return '';
   }
 
   /** Parse city + province (+ postal) from any Canadian-style address string. */
@@ -3892,8 +3906,7 @@ textarea:focus, textarea:focus-visible {
     const address = String(raw || '').trim();
     if (!address) return null;
 
-    const provinceMatch = address.match(new RegExp(`\\b(${CA_PROVINCE_CODES})\\b`, 'i'));
-    const province = provinceMatch ? provinceMatch[1].toUpperCase() : '';
+    const province = provinceCodeFromAddressText(address);
     if (!province) return null;
 
     const postalMatch = address.match(/\b([A-Z]\d[A-Z])\s*(\d[A-Z]\d)\b/i);
@@ -4996,13 +5009,48 @@ out body;`;
     return response.json();
   }
 
+  async function photonReverse(lat, lng) {
+    const url = `https://photon.komoot.io/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&lang=en`;
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' }
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const props = data?.features?.[0]?.properties;
+    if (!props) return null;
+    const country = String(props.country || '').toLowerCase();
+    if (country && country !== 'canada') return { outsideCanada: true };
+
+    const provCode = provinceCodeFromAddressText(String(props.state || ''));
+    const city = String(props.city || props.locality || props.county || '').trim();
+    const street = [props.housenumber, props.street].filter(Boolean).join(' ').trim();
+    const label = composePlaceLabel({ street, city, provCode })
+      || placeLabelFromDisplayName([street, city, props.state, 'Canada'].filter(Boolean).join(', '));
+    const provinceName = provCode ? (CA_PROVINCE_NAMES[provCode] || provCode) : String(props.state || '').trim();
+    const destination = city && provCode
+      ? `${titleCaseCity(city)}, ${provinceName}, Canada`
+      : label || '';
+
+    return {
+      lat,
+      lng,
+      displayName: label || destination,
+      province: provCode,
+      destination,
+      label: label || (city && provCode ? composePlaceLabel({ city, provCode }) : ''),
+    };
+  }
+
   async function nominatimReverse(lat, lng) {
     let best = null;
     let bestScore = 0;
-    for (const zoom of [18, 16, 12]) {
+    const zooms = [18, 14];
+    for (let i = 0; i < zooms.length; i += 1) {
+      if (i > 0) await delayMs(1100);
       let hit;
       try {
-        hit = await nominatimReverseOnce(lat, lng, zoom);
+        hit = await nominatimReverseOnce(lat, lng, zooms[i]);
       } catch {
         continue;
       }
@@ -5016,7 +5064,17 @@ out body;`;
       }
       if (score >= 3) break;
     }
-    return best;
+    if (best?.label) return best;
+
+    try {
+      const photon = await photonReverse(lat, lng);
+      if (photon?.outsideCanada) return photon;
+      if (photon?.label) return photon;
+      if (best) return best;
+      return photon;
+    } catch {
+      return best;
+    }
   }
 
   function getDevicePosition() {
@@ -5104,6 +5162,11 @@ out body;`;
       geo
     );
 
+    if (!searchCtx.label && reverse?.displayName) {
+      const loose = placeLabelFromDisplayName(reverse.displayName);
+      if (loose) searchCtx.label = loose;
+    }
+
     if (!Number.isFinite(position.lat) || !Number.isFinite(position.lng)) {
       return { ok: false, error: 'Could not read GPS coordinates. Try Search again.' };
     }
@@ -5111,7 +5174,7 @@ out body;`;
     if (!searchCtx.label) {
       return {
         ok: false,
-        error: 'Could not resolve your address to a city or street. Move outdoors or wait for GPS to settle, then pick Current Location again.',
+        error: 'Could not resolve your address to a city or street. Tap the location button and choose Current Location again.',
       };
     }
 
@@ -5783,6 +5846,13 @@ out body;`;
 
   async function runSearch() {
     hideStatus();
+    if (!hotelLocationIsReady()) {
+      const located = await applyCurrentLocationFromDevice();
+      if (!located) {
+        scrollToHotelResults();
+        return;
+      }
+    }
     const meta = validateSearchInputs();
     if (!meta) return;
 
