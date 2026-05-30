@@ -1,10 +1,23 @@
 {
-  "latest": "v86",
+  "latest": "v88",
   "appVersion": "3.5.4",
   "highlights": [
-    "Hotel Finder: fix wrong nightly price on result cards."
+    "Hotel Finder: show your real city on the location button and on each hotel card."
   ],
   "builds": {
+    "v88": {
+      "intro": "Investigator Toolbox 3.5.4 — show where you searched from.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "After GPS, the location button shows your city and province (e.g. Kelowna, BC), not a generic label.",
+            "Hotel cards: 7.8 km · 9 min from Kelowna, BC · CAD 104/night incl. tax — distance is from your site.",
+            "Deploy surveillance-travel-calculator.html and service-worker.js (v88)."
+          ]
+        }
+      ]
+    },
     "v86": {
       "intro": "Investigator Toolbox 3.5.4 — stay total + tax line = nightly price.",
       "sections": [

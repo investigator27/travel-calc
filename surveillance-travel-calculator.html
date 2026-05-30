@@ -1281,7 +1281,7 @@
             <div class="settings-body-text">
               <ol class="steps-list">
                 <li>Open <strong>Current Location</strong> and choose <strong>Current Location</strong> — allow access when your browser or device asks.</li>
-                <li>Set check-in and check-out dates, then tap <strong>Search Hotels</strong> (~30 s, ~40 ScraperAPI credits per Search).</li>
+                <li>Set check-in and check-out dates, then tap <strong>Search Hotels</strong> (~30 seconds).</li>
                 <li>Choose a hotel and send the email draft to admin.</li>
               </ol>
             </div>
@@ -1433,7 +1433,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v86';
+  const BUNDLED_PWA_CACHE_VERSION = 'v88';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3435,7 +3435,6 @@ textarea:focus, textarea:focus-visible {
     // Cloudflare Worker that returns Booking.com listings (lets the Hotel Finder
     // work from static GitHub Pages without a local server). Paste your deployed
     // Worker URL here, e.g. 'https://booking-lookup.yourname.workers.dev'.
-    // Leave blank to use the local PowerShell server (api/booking-search) for dev.
     bookingApiUrl: 'https://booking-lookup.investigator-toolbox.workers.dev',
     maxNightlyTotalCad: 200,
     // Per-province nightly cap (CAD, taxes included). Same math for every code in CA_PROVINCE_CODES.
@@ -3444,8 +3443,6 @@ textarea:focus, textarea:focus-visible {
       ON: 200, PE: 200, QC: 200, SK: 200, YT: 200
     },
     searchRadiusKm: 60,
-    /** One tap Search = one ScraperAPI async job (premium+render). Polling the worker does not add credits. */
-    scraperCreditsPerSearch: 40,
     recipients: [
       { name: 'Continuous Improvment Manager', email: 'mitchell.slaney@intrepid.ca' },
       { name: 'Mitchell Slaney', email: 'mitchell.slaney@intrepid.ca' }
@@ -3532,10 +3529,9 @@ textarea:focus, textarea:focus-visible {
   }
 
   function startHotelSearchProgress(phaseOrMessage) {
-    const credits = Number(HOTEL_CONFIG.scraperCreditsPerSearch) || 40;
     const labels = {
       geocode: 'Getting your location…',
-      booking: `Searching Booking.com… (~${credits} credits, one charge per Search)`,
+      booking: 'Searching Booking.com…',
     };
     const msg = labels[phaseOrMessage] || String(phaseOrMessage || labels.booking);
     showHotelSearchProgress(msg);
@@ -3690,9 +3686,7 @@ textarea:focus, textarea:focus-visible {
     if (els.searchLocation) els.searchLocation.value = HOTEL_LOCATION_CURRENT;
     lastSearchGeo = located.geo;
     lastSearchContext = located.searchCtx;
-    if (els.locationLabel) {
-      els.locationLabel.textContent = located.searchCtx.label || 'Current location';
-    }
+    syncHotelLocationPickerLabel(located.searchCtx, located.geo);
     hideStatus();
     return true;
   }
@@ -3729,6 +3723,53 @@ textarea:focus, textarea:focus-visible {
 
   function titleCaseCity(name) {
     return String(name || '').trim().replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  }
+
+  const GENERIC_HOTEL_LOCATION_LABELS = new Set([
+    'select',
+    'getting location…',
+    'your location',
+    'current location',
+    'surveillance site',
+  ]);
+
+  function isGenericHotelLocationLabel(label) {
+    return GENERIC_HOTEL_LOCATION_LABELS.has(String(label || '').trim().toLowerCase());
+  }
+
+  function formatGpsCoordsLabel(lat, lng) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return '';
+    return `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
+  }
+
+  /** Human place name for picker, cards, and email — never a blank/generic "from". */
+  function resolveHotelAreaDisplayLabel(ctx, geo) {
+    const direct = String(ctx?.label || '').trim();
+    if (direct && !isGenericHotelLocationLabel(direct)) return direct;
+
+    const displayName = String(geo?.displayName || '').trim();
+    if (displayName) {
+      const parsed = parseCanadianAddress(displayName);
+      if (parsed?.label && !isGenericHotelLocationLabel(parsed.label)) return parsed.label;
+    }
+
+    const destination = String(ctx?.destination || '').trim();
+    if (destination) {
+      const parsed = parseCanadianAddress(destination);
+      if (parsed?.label && !isGenericHotelLocationLabel(parsed.label)) return parsed.label;
+      const head = destination.match(/^([^,]+),/);
+      if (head) return titleCaseCity(head[1].trim());
+    }
+
+    const coords = formatGpsCoordsLabel(geo?.lat, geo?.lng);
+    if (coords) return coords;
+    return 'surveillance site';
+  }
+
+  function syncHotelLocationPickerLabel(ctx, geo) {
+    const text = resolveHotelAreaDisplayLabel(ctx, geo);
+    if (els.locationLabel) els.locationLabel.textContent = text;
+    return text;
   }
 
   /** Parse city + province (+ postal) from any Canadian-style address string. */
@@ -4386,7 +4427,7 @@ textarea:focus, textarea:focus-visible {
         signal: controller.signal,
       });
       if (response.status === 404) {
-        return { ok: false, hotels: [], error: 'Local search API not found. Stop the server (Ctrl+C), run Start Local Server.bat again, then hard refresh (Ctrl+Shift+R).' };
+        return { ok: false, hotels: [], error: 'Hotel search API not found. Check bookingApiUrl in HOTEL_CONFIG and that the Cloudflare worker is deployed.' };
       }
       if (!response.ok) throw new Error(`booking ${response.status}`);
       let data = await response.json();
@@ -4520,7 +4561,7 @@ textarea:focus, textarea:focus-visible {
         return {
           ok: false,
           properties: [],
-          error: 'Local inventory API not found. Stop the server (Ctrl+C), run Start Local Server.bat again, then hard refresh (Ctrl+Shift+R).'
+          error: 'Hotels.com inventory API is not available (Booking.com search is the active path).'
         };
       }
       if (!response.ok) throw new Error(`inventory ${response.status}`);
@@ -4856,14 +4897,21 @@ out body;`;
         }
       }
     }
-    const city = String(addr.city || addr.town || addr.municipality || addr.county || '').trim();
+    const city = String(
+      addr.city || addr.town || addr.village || addr.hamlet || addr.suburb
+      || addr.locality || addr.municipality || addr.county || ''
+    ).trim();
     const provinceName = provCode ? (CA_PROVINCE_NAMES[provCode] || provCode) : String(addr.state || '').trim();
     const destination = city && provCode
       ? `${titleCaseCity(city)}, ${provinceName}, Canada`
       : provCode
         ? `${provinceName}, Canada`
         : '';
-    const label = city && provCode ? `${titleCaseCity(city)}, ${provCode}` : provCode || 'Your location';
+    const label = city && provCode
+      ? `${titleCaseCity(city)}, ${provCode}`
+      : provCode
+        ? `${CA_PROVINCE_NAMES[provCode] || provCode}, Canada`
+        : '';
 
     return {
       lat: Number.parseFloat(hit.lat),
@@ -4938,8 +4986,8 @@ out body;`;
       return { ok: false, error: 'Your GPS position is outside Canada. Hotel search is for Canadian surveillance sites only.' };
     }
 
-    const label = reverse?.label || 'Your location';
-    const destination = reverse?.destination || 'Canada';
+    const label = reverse?.label || formatGpsCoordsLabel(position.lat, position.lng) || 'Canada';
+    const destination = reverse?.destination || label || 'Canada';
     const provCode = reverse?.province || '';
 
     if (!Number.isFinite(position.lat) || !Number.isFinite(position.lng)) {
@@ -4957,9 +5005,11 @@ out body;`;
     const geo = {
       lat: position.lat,
       lng: position.lng,
-      displayName: label,
+      displayName: reverse?.displayName || label,
       accuracyM: position.accuracyM,
     };
+
+    searchCtx.label = resolveHotelAreaDisplayLabel(searchCtx, geo);
 
     geocodeCache = { key: `gps:${geo.lat},${geo.lng}`, result: geo };
     return { ok: true, geo, searchCtx };
@@ -5121,7 +5171,7 @@ out body;`;
     return {
       nights,
       provinceCode: ctx?.provinceCode || '',
-      areaLabel: ctx?.label || 'Your location',
+      areaLabel: resolveHotelAreaDisplayLabel(ctx, lastSearchGeo),
       destination: ctx?.destination || '',
     };
   }
@@ -5152,7 +5202,7 @@ out body;`;
     return {
       nights,
       provinceCode: lastSearchContext?.provinceCode || '',
-      areaLabel: lastSearchContext?.label || 'Your location',
+      areaLabel: resolveHotelAreaDisplayLabel(lastSearchContext, lastSearchGeo),
       destination: lastSearchContext?.destination || '',
     };
   }
@@ -5226,6 +5276,8 @@ out body;`;
         stayValue: Number.isFinite(Number(h?.priceTotalStay)) ? Math.round(Number(h.priceTotalStay)) : null,
         perNightInclTax: Math.round(workerNightly),
         priceLabel: String(h?.priceLabel || '').trim() || `CAD ${Math.round(workerNightly)}`,
+        priceBreakdown: String(h?.priceBreakdown || '').trim(),
+        priceReliable: h?.priceReliable !== false && !h?.taxesAmbiguous,
         taxesAmbiguous: !!h?.taxesAmbiguous,
       };
     }
@@ -5321,6 +5373,8 @@ out body;`;
         driveTime: km != null ? formatDriveTime(km) : '',
         perNightInclTax: priced.perNightInclTax,
         priceLabel: priced.priceLabel,
+        priceBreakdown: priced.priceBreakdown || '',
+        priceReliable: !!priced.priceReliable,
         taxesAmbiguous: !!priced.taxesAmbiguous,
         rawPrice: h.price || '',
         nights,
@@ -5334,7 +5388,7 @@ out body;`;
       };
     });
 
-    const hasVerifiablePrice = (it) => Number(it.perNightInclTax) > 0;
+    const hasVerifiablePrice = (it) => Number(it.perNightInclTax) > 0 && it.priceReliable;
     const budgetOk = (it) => {
       if (budgetCap <= 0) return hasVerifiablePrice(it);
       if (it.taxesAmbiguous || !hasVerifiablePrice(it)) return false;
@@ -5457,7 +5511,7 @@ out body;`;
       '',
       'Hotel:',
       hotel.name,
-      ...(hotel.priceLabel ? [`Approx. rate: from ${hotel.priceLabel}/night incl. taxes & fees (Booking.com)`] : []),
+      ...(hotel.priceLabel ? [`Approx. rate: ${hotel.priceLabel}/night incl. taxes & fees (Booking.com)`] : []),
       '',
       'Booking.com listing:',
       listingUrl,
@@ -5492,7 +5546,7 @@ out body;`;
     const radiusKm = getMaxDistanceKm();
     const requested = Math.max(1, Number.parseInt(String(requestedCount || els.matchCount?.value || '3'), 10));
     const filtersActive = hotelFiltersAreActive();
-    const listingHint = 'Opens this hotel on Booking.com for your dates';
+    const listingHint = 'Opens on Booking.com for your dates — confirm room type and total';
 
     if (!items.length) {
       els.results.innerHTML = '';
@@ -5549,15 +5603,28 @@ out body;`;
     els.emailSubject.value = '';
     setEmailActionsEnabled(false);
 
+    const areaLabel = resolveHotelAreaDisplayLabel(
+      { label: meta?.areaLabel, destination: meta?.destination },
+      geo
+    );
+    const fromPlace = areaLabel ? ` from ${areaLabel}` : '';
+
     els.results.innerHTML = items.map((hotel, index) => {
       const distancePart = hotel.distance != null
-        ? `${hotel.distance} km${hotel.driveTime ? ` · ${hotel.driveTime}` : ''}`
-        : (hotel.distanceText || 'Distance n/a');
-      const pricePart = hotel.priceLabel
-        ? ` · from ${hotel.priceLabel}${/\/night/i.test(hotel.priceLabel) ? '' : '/night incl. tax'}`
-        : (hotel.rawPrice && !/^CA?\$?\s*0\b/i.test(String(hotel.rawPrice).trim())
-          ? ` · ${hotel.rawPrice}`
-          : ' · rate on Booking.com');
+        ? `${hotel.distance} km${hotel.driveTime ? ` · ${hotel.driveTime}` : ''}${fromPlace}`
+        : (hotel.distanceText || `Distance n/a${fromPlace}`);
+      let pricePart = '';
+      if (hotel.priceReliable && hotel.priceBreakdown && hotel.nights > 1) {
+        pricePart = ` · ${hotel.priceBreakdown} → ${hotel.priceLabel || `CAD ${hotel.perNightInclTax}`}/night incl. tax`;
+      } else if (hotel.priceReliable && hotel.priceLabel) {
+        pricePart = ` · ${hotel.priceLabel}/night incl. tax`;
+      } else if (hotel.priceLabel && !hotel.priceReliable) {
+        pricePart = ` · ~${hotel.priceLabel}/night on search (confirm total on Booking)`;
+      } else if (hotel.rawPrice && !/^CA?\$?\s*0\b/i.test(String(hotel.rawPrice).trim())) {
+        pricePart = ` · ${hotel.rawPrice}`;
+      } else {
+        pricePart = ' · rate on Booking.com';
+      }
       const reviewBadge = hotel.reviewScore
         ? `<span class="hotel-card__score" title="${escapeHtml(hotel.reviewCount != null ? `${hotel.reviewCount} reviews on Booking.com` : 'Booking.com review score')}">${escapeHtml(hotel.reviewScore)}${hotel.reviewWord ? ` ${escapeHtml(hotel.reviewWord)}` : ''}</span>`
         : '';
@@ -5596,8 +5663,9 @@ out body;`;
         `No Canadian hotels ≤ ${capLabel}/night incl. tax within ${radiusKm} km — ` +
         `showing the nearest ${countLabel} farther out (still in Canada).`;
     } else {
+      const near = areaLabel ? ` of ${areaLabel}` : '';
       headline =
-        `Found ${countLabel} on Booking.com within ${radiusKm} km (Canada only), ≤ ${capLabel}/night incl. tax.`;
+        `Found ${countLabel} on Booking.com within ${radiusKm} km${near} (Canada only), ≤ ${capLabel}/night incl. tax.`;
     }
     setStatus(headline, 'success');
     if (!renderOpts.skipScroll) scrollToHotelResults();
@@ -5640,8 +5708,8 @@ out body;`;
         return;
       }
       meta.provinceCode = ctx.provinceCode;
-      meta.areaLabel = ctx.label;
       meta.destination = ctx.destination;
+      meta.areaLabel = syncHotelLocationPickerLabel(ctx, geo);
       const ranked = await fetchAndRankHotels(meta, geo);
       renderHotelResults(ranked.items, meta, geo, ranked.requested, {
         verifyMode: ranked.verifyMode,
