@@ -759,7 +759,16 @@
       gap:var(--space-3);
     }
     .settings-field-block .field{margin:0}
-    .settings-actions{padding:var(--space-3) var(--space-4) var(--space-4)}
+    .settings-actions{
+      padding:var(--space-3) 0 var(--space-4);
+      display:grid;
+      gap:var(--space-2);
+    }
+    .settings-actions .btn{width:100%}
+    .settings-group .settings-field-block--action{
+      padding-top:var(--space-3);
+      padding-bottom:var(--space-3);
+    }
     .settings-badge{
       min-width:8px;
       height:8px;
@@ -1297,7 +1306,7 @@
             </div>
           </div>
           <div id="developerPanel" class="hidden">
-            <p class="hint" style="padding:0 var(--space-4) var(--space-2);margin:0">Disabled tabs stay visible but cannot be opened. Calculator cannot be disabled.</p>
+            <p class="hint" style="padding:0 var(--space-4) var(--space-2);margin:0">Turn tabs off, then tap <strong>Apply for all investigators</strong>. Every device picks this up on next open or refresh (no per-phone setup).</p>
             <h2 class="settings-section-title">Tabs</h2>
             <div class="settings-group">
               <div class="settings-row settings-row--toggle">
@@ -1321,8 +1330,12 @@
                 <span class="settings-row__chevron" aria-hidden="true">›</span>
               </button>
             </div>
-            <div class="settings-actions">
-              <button type="button" class="btn btn-secondary" id="developerLockBtn">Lock</button>
+            <div class="settings-group">
+              <div class="settings-field-block settings-field-block--action">
+                <button type="button" class="btn btn-primary" id="developerApplyTabPolicyBtn">Apply for all investigators</button>
+                <p class="hint hidden" id="developerApplyTabPolicyStatus" role="status"></p>
+                <button type="button" class="btn btn-secondary" id="developerLockBtn">Lock</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1356,13 +1369,13 @@
           <h1 class="settings-screen-title">Tab locks</h1>
           <div class="settings-group">
             <div class="settings-body-text">
-              <p>Each switch controls whether a tab can be opened on <strong>this device</strong>. Calculator is always available.</p>
+              <p>Tab policy is <strong>company-wide</strong>. Calculator is always available.</p>
               <ol class="steps-list">
-                <li>Turn a tab switch <strong>off</strong> to disable it (tab stays visible but cannot be opened).</li>
-                <li>Turn a switch <strong>on</strong> to allow access again.</li>
-                <li>Tap <strong>Lock</strong> on the Developer screen when you are done.</li>
+                <li>Turn a tab switch <strong>off</strong> to lock it (tab stays visible but cannot be opened).</li>
+                <li>Tap <strong>Apply for all investigators</strong> on the Developer screen.</li>
+                <li>Every device on v3.3.7+ fetches the policy when the app opens or comes back to the foreground.</li>
               </ol>
-              <p>Settings are saved in this browser. Uninstalling the app or clearing site data removes locks. Set up each phone or tablet separately.</p>
+              <p>Investigators need the app update <strong>once</strong>. After that, lock changes apply without visiting each phone.</p>
             </div>
           </div>
         </div>
@@ -1375,11 +1388,12 @@
           <div class="settings-group">
             <div class="settings-body-text">
               <p>Upload these files to your GitHub Pages folder (<strong id="developerDeployPath">…</strong>):</p>
-              <ul class="settings-file-list">
-                <li>surveillance-travel-calculator.html</li>
-                <li>service-worker.js</li>
-                <li>release-notes.json</li>
-              </ul>
+                <ul class="settings-file-list">
+                  <li>surveillance-travel-calculator.html</li>
+                  <li>service-worker.js</li>
+                  <li>release-notes.json</li>
+                  <li>tab-policy.json</li>
+                </ul>
             </div>
           </div>
           <h2 class="settings-section-title">Steps</h2>
@@ -1462,8 +1476,9 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  const BUNDLED_APP_VERSION = '3.3.6';
-  const BUNDLED_PWA_CACHE_VERSION = 'v58';
+  const BUNDLED_APP_VERSION = '3.3.7';
+  const BUNDLED_PWA_CACHE_VERSION = 'v59';
+  const TAB_POLICY_API_URL = 'https://booking-lookup.investigator-toolbox.workers.dev';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -1473,6 +1488,7 @@
   let remoteLatestBuild = '';
   const DEVELOPER_PASSWORD = 'dev1-toolb0x';
   const TAB_VISIBILITY_KEY = 'toolboxTabEnabled';
+  const TAB_POLICY_REVISION_KEY = 'toolboxTabPolicyRevision';
   const DEV_UNLOCK_KEY = 'toolboxDevUnlocked';
   const BASE_PATH = window.__BASE_PATH__ || '/dev1-toolb0x/';
   const UPDATE_BANNER_TRANSITION_MS = 2400;
@@ -1906,6 +1922,7 @@
       const data = await response.json();
       if (data.latest) remoteLatestBuild = data.latest;
       syncTargetBuildFromBundledAndRemote();
+      if (data.tabAccess) applyRemoteTabPolicy(parseTabPolicyPayload(data));
       refreshAllVersionDisplays();
     } catch {
     } finally {
@@ -2685,7 +2702,29 @@
     return { hotels: true, requests: true, camera: true };
   }
 
+  let remoteTabPolicyMap = null;
+  let tabVisibilityState = null;
+
+  function normalizeTabAccess(source) {
+    if (!source || typeof source !== 'object') return null;
+    return {
+      hotels: source.hotels !== false,
+      requests: source.requests !== false,
+      camera: source.camera !== false,
+    };
+  }
+
+  function parseTabPolicyPayload(data) {
+    if (!data || typeof data !== 'object') return null;
+    const access = data.tabAccess || data;
+    const map = normalizeTabAccess(access);
+    if (!map) return null;
+    const revision = String(data.revision || data.updatedAt || data.latest || '0');
+    return { map, revision };
+  }
+
   function loadTabVisibility() {
+    if (remoteTabPolicyMap) return { ...getDefaultTabVisibility(), ...remoteTabPolicyMap };
     try {
       const raw = localStorage.getItem(TAB_VISIBILITY_KEY);
       if (!raw) return getDefaultTabVisibility();
@@ -2696,7 +2735,93 @@
     }
   }
 
-  let tabVisibilityState = null;
+  function applyRemoteTabPolicy(parsed) {
+    if (!parsed?.map) return false;
+    const prevRevision = localStorage.getItem(TAB_POLICY_REVISION_KEY) || '';
+    const changed = prevRevision !== parsed.revision;
+    remoteTabPolicyMap = parsed.map;
+    try {
+      localStorage.setItem(TAB_POLICY_REVISION_KEY, parsed.revision);
+      localStorage.setItem(TAB_VISIBILITY_KEY, JSON.stringify(parsed.map));
+    } catch {}
+    window.ToolboxTabs?.applyVisibility?.(parsed.map);
+    window.dispatchEvent(new CustomEvent('toolbox-tab-visibility', { detail: parsed.map }));
+    return changed;
+  }
+
+  async function fetchRemoteTabPolicy() {
+    const workerBase = (TAB_POLICY_API_URL || '').replace(/\/$/, '');
+    if (workerBase) {
+      try {
+        const response = await fetch(`${workerBase}/tab-policy`, { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          const parsed = parseTabPolicyPayload(data);
+          if (parsed) return applyRemoteTabPolicy(parsed);
+        }
+      } catch {}
+    }
+    try {
+      const response = await fetch(`${BASE_PATH}tab-policy.json?ts=${Date.now()}`, { cache: 'no-store' });
+      if (response.ok) {
+        const data = await response.json();
+        const parsed = parseTabPolicyPayload(data);
+        if (parsed) return applyRemoteTabPolicy(parsed);
+      }
+    } catch {}
+    return false;
+  }
+
+  async function publishRemoteTabPolicy() {
+    const map = readDeveloperTabTogglesIntoMap();
+    const payload = {
+      revision: String(Date.now()),
+      updatedAt: new Date().toISOString(),
+      hotels: map.hotels,
+      requests: map.requests,
+      camera: map.camera,
+    };
+    const statusEl = $('developerApplyTabPolicyStatus');
+    const workerBase = (TAB_POLICY_API_URL || '').replace(/\/$/, '');
+    if (!workerBase) {
+      if (statusEl) {
+        statusEl.textContent = 'Worker URL missing. Upload tab-policy.json to GitHub instead.';
+        statusEl.classList.remove('hidden');
+      }
+      return false;
+    }
+    try {
+      const response = await fetch(`${workerBase}/tab-policy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Toolbox-Dev-Password': DEVELOPER_PASSWORD,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (statusEl) {
+          statusEl.textContent = data.error || 'Publish failed. Bind TAB_POLICY_KV on the Worker, or upload tab-policy.json to GitHub.';
+          statusEl.classList.remove('hidden');
+        }
+        return false;
+      }
+      const parsed = parseTabPolicyPayload(data);
+      if (parsed) applyRemoteTabPolicy(parsed);
+      if (statusEl) {
+        statusEl.textContent = 'Applied for all investigators. Devices update on next open or when they return to the app.';
+        statusEl.classList.remove('hidden');
+      }
+      return true;
+    } catch {
+      if (statusEl) {
+        statusEl.textContent = 'Could not reach the Worker. Upload tab-policy.json to GitHub (same folder as the app).';
+        statusEl.classList.remove('hidden');
+      }
+      return false;
+    }
+  }
 
   function readDeveloperTabTogglesIntoMap() {
     const map = getDefaultTabVisibility();
@@ -2736,7 +2861,7 @@
     if (!unlocked && $('developerPassword')) $('developerPassword').value = '';
     if (unlocked) {
       refreshDeveloperGuideLabels();
-      window.ToolboxTabs?.applyVisibility?.(loadTabVisibility());
+      fetchRemoteTabPolicy().then(() => syncDeveloperTabToggles());
     }
   }
 
@@ -2751,7 +2876,7 @@
   }
 
   function syncDeveloperTabToggles() {
-    const map = loadTabVisibility();
+    const map = remoteTabPolicyMap || loadTabVisibility();
     const hotels = $('devTabHotels');
     const requests = $('devTabRequests');
     const camera = $('devTabCamera');
@@ -2974,17 +3099,15 @@ $('summaryNote').textContent =
     setDeveloperUnlocked(true);
     syncDeveloperTabToggles();
   });
-  $('developerLockBtn')?.addEventListener('click', () => {
-    persistTabLocksFromDeveloper();
-    setDeveloperUnlocked(false);
+  $('developerApplyTabPolicyBtn')?.addEventListener('click', async () => {
+    const btn = $('developerApplyTabPolicyBtn');
+    if (btn) btn.disabled = true;
+    await publishRemoteTabPolicy();
+    if (btn) btn.disabled = false;
   });
-  ['devTabHotels', 'devTabRequests', 'devTabCamera'].forEach((id) => {
-    const el = $(id);
-    if (!el || el.dataset.tabLockBound) return;
-    el.dataset.tabLockBound = '1';
-    const onToggle = () => persistTabLocksFromDeveloper();
-    el.addEventListener('change', onToggle);
-    el.addEventListener('input', onToggle);
+  $('developerLockBtn')?.addEventListener('click', () => {
+    $('developerApplyTabPolicyStatus')?.classList.add('hidden');
+    setDeveloperUnlocked(false);
   });
   setDeveloperUnlocked(isDeveloperUnlocked());
   if (isDeveloperUnlocked()) syncDeveloperTabToggles();
@@ -3136,12 +3259,16 @@ $('summaryNote').textContent =
     switchTab('calculator');
   }
 
-  initTabBar();
+  fetchRemoteTabPolicy().finally(() => initTabBar());
   bindViewportHeightSync();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') fetchRemoteTabPolicy();
+  });
 
   window.addEventListener('load', async () => {
     syncViewportHeight();
     await syncBuildLabelFromReleaseNotes();
+    await fetchRemoteTabPolicy();
     refreshAllVersionDisplays();
     try {
       sessionStorage.removeItem('toolboxReloadBuild');

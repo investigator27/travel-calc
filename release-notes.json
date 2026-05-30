@@ -1,12 +1,29 @@
 {
-  "latest": "v58",
-  "appVersion": "3.3.6",
+  "latest": "v59",
+  "appVersion": "3.3.7",
+  "tabAccess": {
+    "hotels": true,
+    "requests": true,
+    "camera": true
+  },
   "highlights": [
-    "Update check compares server build to installed build (fixes false up to date).",
-    "Locked tabs look clearly disabled and cannot be opened.",
-    "Upload v58 to GitHub."
+    "Tab locks apply company-wide from Developer (one tap, all devices refresh policy).",
+    "Upload v59 plus tab-policy.json; redeploy booking Worker with TAB_POLICY_KV.",
+    "Investigators only need the app update once; lock changes apply on next open."
   ],
   "builds": {
+    "v59": {
+      "intro": "Investigator Toolbox 3.3.7 — Company-wide tab policy.",
+      "sections": [
+        {
+          "heading": "Developer",
+          "items": [
+            "Apply for all investigators pushes tab locks to the server.",
+            "Every phone fetches policy on open, resume, and after Software Update."
+          ]
+        }
+      ]
+    },
     "v58": {
       "intro": "Investigator Toolbox 3.3.6 — Update detection and tab lock fixes.",
       "sections": [
