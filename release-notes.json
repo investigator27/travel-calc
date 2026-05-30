@@ -1,10 +1,22 @@
 {
-  "latest": "v103",
+  "latest": "v104",
   "appVersion": "3.5.4",
   "highlights": [
-    "Stronger home screen icon badge when a software update is ready."
+    "Developer Tools dashboard for deploy checks, PWA diagnostics, and worker health."
   ],
   "builds": {
+    "v104": {
+      "intro": "Investigator Toolbox 3.5.4 — Developer Tools dashboard.",
+      "sections": [
+        {
+          "heading": "Admin",
+          "items": [
+            "Settings → Developer → Developer Tools: live deploy vs GitHub build, PWA/service worker status, hotel worker health, tab policy JSON, copy debug bundle, badge test, and session reset.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v104)."
+          ]
+        }
+      ]
+    },
     "v103": {
       "intro": "Investigator Toolbox 3.5.4 — home screen update badge.",
       "sections": [
