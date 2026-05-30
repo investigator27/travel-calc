@@ -732,12 +732,12 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  let APP_VERSION = '3.1.7';
+  let APP_VERSION = '3.1.8';
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
     || /[?&]pwa=1(?:&|$)/.test(location.search);
   const DEV_MODE = IS_LOCAL_DEV && !PWA_TEST_MODE;
-  let PWA_CACHE_VERSION = 'v46';
+  let PWA_CACHE_VERSION = 'v47';
   const BASE_PATH = window.__BASE_PATH__ || '/investigator-toolbox/';
   const UPDATE_BANNER_TRANSITION_MS = 2400;
   const UPDATE_BANNER_HIDE_MS = UPDATE_BANNER_TRANSITION_MS;
@@ -2801,7 +2801,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return 'Hotel search is out of API credits. Contact admin.';
     }
     if (/timed out|took longer than 30/i.test(s)) {
-      return 'Booking.com took too long. Wait 30–45 seconds and try again.';
+      return 'Booking.com was slow (30s server limit). Tap Search again — the app retries once automatically.';
     }
     if (/not configured/i.test(s)) {
       return s;
@@ -2815,10 +2815,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!wv) {
       return (
         'Cloudflare Worker is outdated (no workerVersion in response). ' +
-        'Redeploy cloudflare/booking-worker.js on Cloudflare, then hard-refresh the app (footer should show v3.1.7).'
+        'Redeploy cloudflare/booking-worker.js on Cloudflare, then hard-refresh the app (footer should show v3.1.8).'
       );
     }
-    const expected = 'booking-worker-46';
+    const expected = 'booking-worker-47';
     if (wv !== expected && /protected|premium\+render|ScraperAPI blocked/i.test(base)) {
       return `${base} (deployed: ${wv}; need ${expected} on Cloudflare)`;
     }
@@ -2868,47 +2868,69 @@ document.addEventListener('DOMContentLoaded', () => {
     // while the same search without filters works. Breakfast/parking/cancellation: verify on
     // the Booking.com link. "Hotels & motels only" is applied below after results return.
 
-    const BOOKING_SEARCH_TIMEOUT_MS = 90000;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), BOOKING_SEARCH_TIMEOUT_MS);
-    let slowHintTimer = null;
-    slowHintTimer = setTimeout(() => {
-      showHotelSearchProgress('Still searching Booking.com… this can take up to a minute. Fewer amenity filters usually load faster.');
-    }, 22000);
-    try {
-      const response = await fetch(getBookingApiUrl(params), { cache: 'no-store', signal: controller.signal });
-      if (response.status === 404) {
-        return { ok: false, hotels: [], error: 'Local search API not found. Stop the server (Ctrl+C), run Start Local Server.bat again, then hard refresh (Ctrl+Shift+R).' };
+    const isBookingTimeoutError = (raw, formatted) =>
+      /took longer than 30|timed out|took too long|timeout/i.test(String(raw || '')) ||
+      /took longer than 30|timed out|took too long/i.test(String(formatted || ''));
+
+    const maxAttempts = 2;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        showHotelSearchProgress('Booking.com was slow; retrying once (about 30 more seconds)…');
+        await new Promise((r) => setTimeout(r, 1200));
       }
-      if (!response.ok) throw new Error(`booking ${response.status}`);
-      const data = await response.json();
-      const rawHotels = Array.isArray(data.hotels)
-        ? data.hotels
-        : (data.hotels && typeof data.hotels === 'object' ? [data.hotels] : []);
-      const filtered = applyClientHotelFilters(rawHotels);
-      const errText = formatBookingSearchError(data);
-      if (!data.ok) {
-        return { ok: false, hotels: [], error: errText || 'Booking.com search failed.' };
+
+      const BOOKING_SEARCH_TIMEOUT_MS = 90000;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), BOOKING_SEARCH_TIMEOUT_MS);
+      let slowHintTimer = null;
+      slowHintTimer = setTimeout(() => {
+        showHotelSearchProgress(
+          attempt === 0
+            ? 'Still searching Booking.com… usually 20–40 seconds; slow runs retry once automatically.'
+            : 'Second attempt in progress…'
+        );
+      }, 22000);
+      try {
+        const response = await fetch(getBookingApiUrl(params), { cache: 'no-store', signal: controller.signal });
+        if (response.status === 404) {
+          return { ok: false, hotels: [], error: 'Local search API not found. Stop the server (Ctrl+C), run Start Local Server.bat again, then hard refresh (Ctrl+Shift+R).' };
+        }
+        if (!response.ok) throw new Error(`booking ${response.status}`);
+        const data = await response.json();
+        const rawHotels = Array.isArray(data.hotels)
+          ? data.hotels
+          : (data.hotels && typeof data.hotels === 'object' ? [data.hotels] : []);
+        const filtered = applyClientHotelFilters(rawHotels);
+        const errText = formatBookingSearchError(data);
+        if (!data.ok) {
+          if (isBookingTimeoutError(data.error, errText) && attempt < maxAttempts - 1) continue;
+          return { ok: false, hotels: [], error: errText || 'Booking.com search failed.' };
+        }
+        if (!filtered.length) {
+          return {
+            ok: false,
+            hotels: [],
+            error: els.hotelsOnly?.checked
+              ? 'No hotels or motels matched after filtering. Turn off “Hotels & motels only” or try different dates.'
+              : 'No hotels returned for this area and dates.'
+          };
+        }
+        return { ok: true, hotels: filtered, error: '' };
+      } catch (err) {
+        const isAbort = err && err.name === 'AbortError';
+        const msg = isAbort
+          ? 'Booking.com search timed out after 90 seconds. Try Search again or open Booking.com manually.'
+          : String(err?.message || err);
+        const friendly = friendlyBookingApiError(msg);
+        if ((isAbort || isBookingTimeoutError(msg, friendly)) && attempt < maxAttempts - 1) continue;
+        return { ok: false, hotels: [], error: friendly };
+      } finally {
+        clearTimeout(timer);
+        if (slowHintTimer) clearTimeout(slowHintTimer);
       }
-      if (!filtered.length) {
-        return {
-          ok: false,
-          hotels: [],
-          error: els.hotelsOnly?.checked
-            ? 'No hotels or motels matched after filtering. Turn off “Hotels & motels only” or try different dates.'
-            : 'No hotels returned for this area and dates.'
-        };
-      }
-      return { ok: true, hotels: filtered, error: '' };
-    } catch (err) {
-      const msg = (err && err.name === 'AbortError')
-        ? 'Booking.com search timed out after 90 seconds. Try again, turn off amenity filters, or open Booking.com manually.'
-        : String(err?.message || err);
-      return { ok: false, hotels: [], error: friendlyBookingApiError(msg) };
-    } finally {
-      clearTimeout(timer);
-      if (slowHintTimer) clearTimeout(slowHintTimer);
     }
+
+    return { ok: false, hotels: [], error: 'Booking.com search failed after two attempts. Tap Search again in a minute.' };
   }
 
   function applyHotelsComInventoryToHotel(hotel, inventoryState) {
@@ -3575,7 +3597,7 @@ out body;`;
     const ctx = lastSearchContext;
     if (!ctx) return { items: [], requested, verifyMode: 'none' };
 
-    if (typeof onProgress === 'function') onProgress('Searching Booking.com… usually 20–40 seconds; amenity filters can take longer.');
+    if (typeof onProgress === 'function') onProgress('Searching Booking.com… usually 20–40 seconds; slow runs retry once automatically.');
     const result = await loadBookingHotels(ctx, geo);
     const areaSearchUrl = buildBookingAreaSearchUrl(ctx, geo);
 

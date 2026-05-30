@@ -1,12 +1,25 @@
 {
-  "latest": "v46",
-  "appVersion": "3.1.7",
+  "latest": "v47",
+  "appVersion": "3.1.8",
   "highlights": [
-    "Hotel errors show Cloudflare workerVersion so you can tell deploy vs ScraperAPI credits.",
-    "Worker retries once on Protected; ?preview=1 shows Booking URL without using credits.",
-    "Deploy v46 app + booking-worker-46 on Cloudflare."
+    "Hotel search auto-retries once when Booking.com is slow (common on desktop).",
+    "Worker stops ScraperAPI when hotel cards appear (faster than full page load).",
+    "Deploy v47 app + booking-worker-47 on Cloudflare."
   ],
   "builds": {
+    "v47": {
+      "intro": "Investigator Toolbox 3.1.8 — Hotel Finder slow-search retry.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "If Booking.com hits the 30s server limit, the app automatically runs one more search.",
+            "Worker uses wait_for_selector on hotel cards to finish sooner when possible.",
+            "Desktop: hard-refresh after upload so footer shows v3.1.8."
+          ]
+        }
+      ]
+    },
     "v46": {
       "intro": "Investigator Toolbox 3.1.7 — Clearer Hotel Finder errors and Worker diagnostics.",
       "sections": [
