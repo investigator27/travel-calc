@@ -63,7 +63,7 @@
       --radius-sm:0.375rem;--radius-md:0.5rem;--radius-lg:0.875rem;--radius-xl:1rem;--radius-full:9999px;
       --shadow-sm:0 1px 2px rgb(25 23 18/.06);--shadow-md:0 8px 22px rgb(25 23 18/.08);
       --font-body:'Satoshi',Inter,sans-serif;--transition:180ms cubic-bezier(0.16,1,0.3,1);
-      --update-banner-duration:2.8s;
+      --update-banner-duration:2.4s;
       --update-banner-ease:cubic-bezier(0.16,1,0.3,1);
       --tab-bar-height:4.75rem;
       --tab-bar-safe-bottom:max(env(safe-area-inset-bottom,0px),12px);
@@ -732,16 +732,17 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  let APP_VERSION = '3.1.3';
+  let APP_VERSION = '3.1.4';
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
     || /[?&]pwa=1(?:&|$)/.test(location.search);
   const DEV_MODE = IS_LOCAL_DEV && !PWA_TEST_MODE;
-  let PWA_CACHE_VERSION = 'v42';
+  let PWA_CACHE_VERSION = 'v43';
   const BASE_PATH = window.__BASE_PATH__ || '/investigator-toolbox/';
-  const UPDATE_BANNER_TRANSITION_MS = 2800;
+  const UPDATE_BANNER_TRANSITION_MS = 2400;
   const UPDATE_BANNER_HIDE_MS = UPDATE_BANNER_TRANSITION_MS;
-  const UPDATE_BANNER_AUTODISMISS_MS = 30000;
+  /** Visible time before slide-up; + transition ≈ 5–6s total for “up to date” banner */
+  const UPDATE_BANNER_AUTODISMISS_MS = 3000;
 
   const menuToggle = qs('[data-menu-toggle]');
   const menuPanel = $('menuPanel');
@@ -2784,6 +2785,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function friendlyBookingApiError(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    if (/protected|premium \+ javascript render|scraperapi/i.test(s)) {
+      return 'Hotel search service needs ScraperAPI premium+render (admin: check SCRAPER_API_KEY on Cloudflare and credits).';
+    }
+    if (/401|403|invalid api key|missing or invalid/i.test(s)) {
+      return 'Hotel search API key is missing or invalid. Contact admin.';
+    }
+    if (/credits|quota|out of credits/i.test(s)) {
+      return 'Hotel search is out of API credits. Contact admin.';
+    }
+    if (/timed out|took longer than 30/i.test(s)) {
+      return 'Booking.com took too long. Try again with no amenity filters, or wait a minute and retry.';
+    }
+    return s.length > 160 ? `${s.slice(0, 157)}…` : s;
+  }
+
   async function loadBookingHotels(ctx, geo) {
     if (!ctx) return { ok: false, hotels: [], error: 'missing-context' };
     const params = new URLSearchParams({
@@ -2817,13 +2836,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         ok: !!data.ok,
         hotels: rawHotels,
-        error: data.error || ''
+        error: friendlyBookingApiError(data.error || '')
       };
     } catch (err) {
       const msg = (err && err.name === 'AbortError')
         ? 'Booking.com search timed out after 90 seconds. Try again, turn off amenity filters, or open Booking.com manually.'
         : String(err?.message || err);
-      return { ok: false, hotels: [], error: msg };
+      return { ok: false, hotels: [], error: friendlyBookingApiError(msg) };
     } finally {
       clearTimeout(timer);
       if (slowHintTimer) clearTimeout(slowHintTimer);
