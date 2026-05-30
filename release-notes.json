@@ -1,10 +1,23 @@
 {
-  "latest": "v110",
+  "latest": "v111",
   "appVersion": "3.5.4",
   "highlights": [
-    "Settings sections use iOS-style feature cards with icons and short descriptions."
+    "Settings pages show one title card with blurb; controls use the original layout below."
   ],
   "builds": {
+    "v111": {
+      "intro": "Investigator Toolbox 3.5.4 — settings page title cards only.",
+      "sections": [
+        {
+          "heading": "Settings",
+          "items": [
+            "Personalization, Location, Notifications, and Software Update have one intro card (title + blurb); toggles and sections are unchanged below.",
+            "Check for updates button is centered on the Software Update screen.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v111)."
+          ]
+        }
+      ]
+    },
     "v110": {
       "intro": "Investigator Toolbox 3.5.4 — iOS-style settings feature cards.",
       "sections": [
