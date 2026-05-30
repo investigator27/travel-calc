@@ -1,10 +1,38 @@
 {
-  "latest": "v78",
+  "latest": "v81",
   "appVersion": "3.5.4",
   "highlights": [
     "Hotel Finder: correct all-in nightly prices and $200/night budget (all provinces)."
   ],
   "builds": {
+    "v81": {
+      "intro": "Investigator Toolbox 3.5.4 — hardened filters for edge cases.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Shared filter rules in cloudflare/booking-filters.js (run build-booking-worker.mjs after edits).",
+            "Amenity filters: card proof when scraped; trust Booking URL only when the card has no amenity data.",
+            "Hotels & motels: same search page every time; chains + URL slug detection.",
+            "Deploy booking-worker-65 plus HTML and service-worker (v81)."
+          ]
+        }
+      ]
+    },
+    "v80": {
+      "intro": "Investigator Toolbox 3.5.4 — fix Hotels & motels filter (same search results).",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Hotels & motels no longer changes the Booking URL (was replacing SureStay with unrelated over-budget listings).",
+            "Filter runs on the same scrape client-side; Best Western / SureStay and similar chains recognized.",
+            "Toggle filters after Search refilters cached results — no extra ScraperAPI charge.",
+            "Deploy booking-worker-64 plus HTML and service-worker (v80)."
+          ]
+        }
+      ]
+    },
     "v78": {
       "intro": "Investigator Toolbox 3.5.4 — Canada-only hotels; fix border and budget fallback.",
       "sections": [

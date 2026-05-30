@@ -314,6 +314,11 @@
     .hotel-meta{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;font-size:var(--text-sm);color:var(--color-text-muted)}
     .hotel-meta__sub{font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)}
     .hotel-card--area-search{border-style:dashed}
+    .hotel-audit{margin-top:var(--space-3);padding:var(--space-4);border-radius:var(--radius-lg);background:var(--color-surface-2);border:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);font-size:var(--text-sm)}
+    .hotel-audit-title{margin:0 0 var(--space-2);font-weight:600}
+    .hotel-audit-list{margin:0;padding-left:1.25rem}
+    .hotel-audit-list li{margin:.35rem 0}
+    .hotel-audit-foot{margin:.75rem 0 0}
     .hotel-meta__rating{font-weight:700;color:var(--color-text)}
     .hotel-actions{display:flex;gap:var(--space-2);flex-wrap:wrap}
     .hotel-actions .btn{flex:1;min-width:min(100%,8rem);min-height:46px;padding:.8rem 1rem}
@@ -1428,7 +1433,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v78';
+  const BUNDLED_PWA_CACHE_VERSION = 'v81';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3496,7 +3501,7 @@ textarea:focus, textarea:focus-visible {
   let lastSearchContext = null;
   let lastSearchGeo = null;
   let lastSearchRankState = null;
-  /** Worker-applied Booking.com nflt keys: breakfast, parking, cancellation, hotels_motels */
+  /** Worker-applied Booking.com nflt: breakfast, parking, cancellation. Hotels/motels = client-side only. */
   let lastBookingFiltersApplied = [];
   let geocodeCache = { key: '', result: null };
   const pickerRegistry = [];
@@ -3892,6 +3897,26 @@ textarea:focus, textarea:focus-visible {
     return codes;
   }
 
+  /** Amenity codes that change the Booking URL (excludes hotels/motels — client-side only). */
+  function getBookingUrlAmenityParams() {
+    const codes = [];
+    if (els.freeBreakfast?.checked) codes.push('FREE_BREAKFAST');
+    if (els.freeParking?.checked) codes.push('FREE_PARKING');
+    if (els.freeCancellation?.checked) codes.push('FREE_CANCELLATION');
+    return codes;
+  }
+
+  /** Matches cloudflare/booking-filters.js passesAmenityFilter */
+  function passesAmenityFilter(hotel, key, urlFiltersApplied) {
+    const field =
+      key === 'breakfast' ? 'freeBreakfast' : key === 'parking' ? 'freeParking' : 'freeCancellation';
+    if (hotel[field] === true) return true;
+    const urlActive =
+      Array.isArray(urlFiltersApplied) && urlFiltersApplied.includes(key);
+    if (urlActive && hotel.cardAmenitiesScanned !== true) return true;
+    return false;
+  }
+
   function getMaxNightlyCad(provinceCode) {
     const code = String(provinceCode || lastSearchContext?.province || '').toUpperCase();
     return HOTEL_CONFIG.maxNightlyByProvince[code] ?? HOTEL_CONFIG.maxNightlyTotalCad;
@@ -4032,9 +4057,7 @@ textarea:focus, textarea:focus-visible {
 
   function buildClientNfltChips() {
     const chips = [];
-    if (els.hotelsOnly?.checked) {
-      chips.push('ht_id=204', 'ht_id=205');
-    }
+    // Hotels & motels: filtered on scraped cards (see isHotelOrMotelListing), not Booking nflt.
     if (els.freeBreakfast?.checked) chips.push('mealplan=1');
     if (els.freeParking?.checked) chips.push('hotelfacility=2');
     if (els.freeCancellation?.checked) chips.push('oos=1');
@@ -4172,6 +4195,8 @@ textarea:focus, textarea:focus-visible {
     /\b(apartments?|hostels?|holiday homes?|vacation homes?|villas?|cottages?|guest houses?|homestays?|condos?|condominiums?|aparthotels?|apart hotels?|residences?|boats?|campsites?|tents?|bed\s*(?:and|&)\s*breakfasts?|b\s*&\s*b|bnbs?|lofts?|townhouses?|bungalows?|farm stays?|country houses?|capsules?|students?|chalets?)\b/i;
   const HOTEL_MOTEL_TYPE_RE = /\b(hotels?|motels?|resorts?)\b/i;
   const INN_LODGE_TYPE_RE = /\b(inns?|lodges?)\b/i;
+  const HOTEL_CHAIN_RE =
+    /\b(best western|surestay|holiday inn|hampton inn|fairfield|comfort inn|quality inn|days inn|ramada|wyndham|marriott|hilton|doubletree|embassy suites|sheraton|hyatt|radisson|delta hotels|sandman|coast hotels|travelodge|super\s*8|motel\s*6|howard johnson|four points|homewood suites|towneplace|candlewood|staybridge|country inn|la quinta|novotel|ibis|chelsea|accent inns|park inn|microtel|wingate|aloft|residence inn|springhill suites|courtyard)\b/i;
 
   function isLikelyNonHotelFromUrl(url) {
     const path = String(url || '').toLowerCase();
@@ -4213,9 +4238,11 @@ textarea:focus, textarea:focus-visible {
       return false;
     }
     if (isLikelyNonHotelFromUrl(url)) return false;
+    if (/\b(hotel|motel|inn|resort|lodge|suites?)\b/i.test(url) && !isLikelyNonHotelFromUrl(url)) return true;
 
     if (/\b(hotel|motel)\b/i.test(name)) return true;
     if (/\b(inn|lodge|resort)\b/i.test(name)) return true;
+    if (HOTEL_CHAIN_RE.test(name)) return true;
     return false;
   }
 
@@ -4270,7 +4297,7 @@ textarea:focus, textarea:focus-visible {
       const response = await fetch(url, { cache: 'no-store' });
       const data = await response.json();
       const build = parseWorkerBuildNumber(data.workerVersion);
-      const needsNflt = getHotelsComAmenityParams().length > 0;
+      const needsNflt = getBookingUrlAmenityParams().length > 0;
       if (!data.filterSelfTest || build < MIN_FILTER_WORKER_BUILD || !data.allPassed) {
         workerFilterSupportCache = {
           ok: false,
@@ -4300,18 +4327,19 @@ textarea:focus, textarea:focus-visible {
   }
 
   function applyClientHotelFilters(hotels) {
+    const urlFilters = lastBookingFiltersApplied || [];
     let list = (Array.isArray(hotels) ? hotels : []).filter(isCanadianBookingListing);
     if (els.hotelsOnly?.checked) {
       list = list.filter((h) => isHotelOrMotelListing(h));
     }
-    if (els.freeBreakfast?.checked && !bookingUrlFilterActive('breakfast')) {
-      list = list.filter((h) => h.freeBreakfast === true);
+    if (els.freeBreakfast?.checked) {
+      list = list.filter((h) => passesAmenityFilter(h, 'breakfast', urlFilters));
     }
-    if (els.freeParking?.checked && !bookingUrlFilterActive('parking')) {
-      list = list.filter((h) => h.freeParking === true);
+    if (els.freeParking?.checked) {
+      list = list.filter((h) => passesAmenityFilter(h, 'parking', urlFilters));
     }
-    if (els.freeCancellation?.checked && !bookingUrlFilterActive('cancellation')) {
-      list = list.filter((h) => h.freeCancellation === true);
+    if (els.freeCancellation?.checked) {
+      list = list.filter((h) => passesAmenityFilter(h, 'cancellation', urlFilters));
     }
     return list;
   }
@@ -4375,7 +4403,7 @@ textarea:focus, textarea:focus-visible {
         }
       }
 
-      if (build < MIN_NFLT_FILTER_WORKER_BUILD && !data.pending && getHotelsComAmenityParams().length) {
+      if (build < MIN_NFLT_FILTER_WORKER_BUILD && !data.pending && getBookingUrlAmenityParams().length) {
         return {
           ok: false,
           hotels: [],
@@ -5250,7 +5278,9 @@ out body;`;
       if (it.taxesAmbiguous || !hasVerifiablePrice(it)) return false;
       return it.perNightInclTax <= budgetCap;
     };
-    const withinRadius = mapped.filter((it) => it.distance == null || it.distance <= radiusKm);
+    const withinRadius = mapped.filter(
+      (it) => Number.isFinite(it.distance) && it.distance <= radiusKm
+    );
 
     const withinRadiusBudget = withinRadius.filter(budgetOk);
     if (withinRadiusBudget.length) {
@@ -5285,6 +5315,17 @@ out body;`;
     const withinRadiusPriced = withinRadius.filter(hasVerifiablePrice);
     const overBudgetCount = withinRadiusPriced.filter((it) => it.perNightInclTax > budgetCap).length;
     const noPriceCount = withinRadius.length - withinRadiusPriced.length;
+    const nearbyAudit = withinRadius
+      .slice()
+      .sort((a, b) => a.distance - b.distance)
+      .map((it) => ({
+        name: it.name,
+        distance: it.distance,
+        perNightInclTax: it.perNightInclTax,
+        priceLabel: it.priceLabel,
+        taxesAmbiguous: it.taxesAmbiguous,
+        listingUrl: it.listingUrl,
+      }));
 
     return {
       items: [],
@@ -5294,6 +5335,7 @@ out body;`;
       nearbyCount: withinRadius.length,
       overBudgetCount,
       noPriceCount,
+      nearbyAudit,
       inventoryCount: filtered.length,
       areaSearchUrl
     };
@@ -5333,7 +5375,8 @@ out body;`;
       budgetCap: ranked.budgetCap,
       nearbyCount: ranked.nearbyCount,
       overBudgetCount: ranked.overBudgetCount,
-      noPriceCount: ranked.noPriceCount
+      noPriceCount: ranked.noPriceCount,
+      nearbyAudit: ranked.nearbyAudit
     }, { skipScroll: true });
   }
 
@@ -5430,9 +5473,30 @@ out body;`;
         }
         const lead =
           nearby > 0
-            ? `Found ${nearby} Canadian hotel${nearby === 1 ? '' : 's'} within ${radiusKm} km, but none ≤ ${capLabel}/night incl. tax${detail}. Try a larger distance, different dates, or fewer filters.`
-            : `No Canadian hotels within ${radiusKm} km for your dates and filters. Try a larger distance or different dates.`;
+            ? `Found ${nearby} Canadian hotel${nearby === 1 ? '' : 's'} within ${radiusKm} km, but none ≤ ${capLabel}/night incl. tax${detail}. One Booking search was used (~25 credits). Change distance, dates, or filters, then tap Search again for a new search.`
+            : `No Canadian hotels within ${radiusKm} km for your dates and filters. One Booking search was used (~25 credits). Try a larger distance or different dates, then tap Search again.`;
         setStatus(lead, 'error');
+        const audit = Array.isArray(resultMeta.nearbyAudit) ? resultMeta.nearbyAudit : [];
+        if (audit.length) {
+          const rows = audit.map((row) => {
+            const dist = Number.isFinite(row.distance) ? `${row.distance} km` : 'distance n/a';
+            let rate = 'rate not scraped — check on Booking.com';
+            if (row.taxesAmbiguous && row.priceLabel) rate = `${row.priceLabel} (fees not fully scraped)`;
+            else if (Number(row.perNightInclTax) > 0) rate = `${row.priceLabel || `CAD ${row.perNightInclTax}`}/night incl. tax`;
+            else if (row.priceLabel) rate = row.priceLabel;
+            const link = row.listingUrl
+              ? ` <a href="${escapeHtml(row.listingUrl)}" target="_blank" rel="noopener noreferrer">listing</a>`
+              : '';
+            return `<li><strong>${escapeHtml(row.name)}</strong> — ${escapeHtml(dist)} — ${escapeHtml(rate)}${link}</li>`;
+          }).join('');
+          const areaLink = resultMeta.areaSearchUrl
+            ? `<p class="hotel-audit-foot"><a href="${escapeHtml(resultMeta.areaSearchUrl)}" target="_blank" rel="noopener noreferrer">Open the same search on Booking.com</a> to compare rates (no extra app charge).</p>`
+            : '';
+          els.results.innerHTML =
+            `<div class="hotel-audit" role="region" aria-label="Hotels from last search">` +
+            `<p class="hotel-audit-title">Rates from this search (verify before searching again):</p>` +
+            `<ul class="hotel-audit-list">${rows}</ul>${areaLink}</div>`;
+        }
         scrollToHotelResults();
         return;
       } else if (!geo) {
@@ -5558,7 +5622,8 @@ out body;`;
         budgetCap: ranked.budgetCap,
         nearbyCount: ranked.nearbyCount,
         overBudgetCount: ranked.overBudgetCount,
-        noPriceCount: ranked.noPriceCount
+        noPriceCount: ranked.noPriceCount,
+        nearbyAudit: ranked.nearbyAudit
       });
     } catch (err) {
       stopHotelSearchProgress();
