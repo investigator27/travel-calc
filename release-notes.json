@@ -1,10 +1,22 @@
 {
-  "latest": "v101",
+  "latest": "v102",
   "appVersion": "3.5.4",
   "highlights": [
-    "Header title shortened to Toolbox."
+    "Toolbox branding on header and Software Update card."
   ],
   "builds": {
+    "v102": {
+      "intro": "Investigator Toolbox 3.5.4 — Toolbox on Software Update card.",
+      "sections": [
+        {
+          "heading": "UI",
+          "items": [
+            "Software Update card title shows Toolbox (e.g. Toolbox 3.5.4), not Investigator Toolbox.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v102)."
+          ]
+        }
+      ]
+    },
     "v101": {
       "intro": "Investigator Toolbox 3.5.4 — header title.",
       "sections": [
