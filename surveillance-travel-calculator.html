@@ -1427,8 +1427,8 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  const BUNDLED_APP_VERSION = '3.5.3';
-  const BUNDLED_PWA_CACHE_VERSION = 'v75';
+  const BUNDLED_APP_VERSION = '3.5.4';
+  const BUNDLED_PWA_CACHE_VERSION = 'v77';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3433,6 +3433,7 @@ textarea:focus, textarea:focus-visible {
     // Leave blank to use the local PowerShell server (api/booking-search) for dev.
     bookingApiUrl: 'https://booking-lookup.investigator-toolbox.workers.dev',
     maxNightlyTotalCad: 200,
+    // Per-province nightly cap (CAD, taxes included). Same math for every code in CA_PROVINCE_CODES.
     maxNightlyByProvince: {
       AB: 200, BC: 200, MB: 200, NB: 200, NL: 200, NS: 200, NT: 200, NU: 200,
       ON: 200, PE: 200, QC: 200, SK: 200, YT: 200
@@ -5134,20 +5135,56 @@ out body;`;
     return `booking-${index}-${base || 'hotel'}`;
   }
 
+  /** Nightly CAD incl. tax — matches cloudflare/booking-price.js computePerNightInclTax. */
   function parseStayPriceFromHotel(h, nights) {
-    let stayValue = Number.isFinite(Number(h?.priceValue)) ? Number(h.priceValue) : null;
-    if (stayValue == null && h?.price) {
-      const pm = String(h.price).match(/([\d][\d,]*(?:\.\d+)?)/);
-      if (pm) stayValue = Math.round(parseFloat(pm[1].replace(/,/g, '')));
-    }
-    const taxesValue = Number.isFinite(Number(h?.taxesValue)) ? Number(h.taxesValue) : 0;
     const n = Math.max(1, Number(nights) || 1);
-    if (stayValue == null) return { stayValue: null, perNightInclTax: null, priceLabel: '' };
-    const perNightInclTax = Math.round((stayValue + taxesValue) / n);
+    const taxesIncluded = !!h?.taxesIncluded;
+    const taxesText = String(h?.taxesText || '').trim();
+    const taxesExtra = taxesIncluded ? 0 : Math.max(0, Number(h?.taxesValue) || 0);
+    const basis = h?.priceBasis || null;
+    const taxesAmbiguous =
+      !taxesIncluded &&
+      !!taxesText &&
+      !/includ/i.test(taxesText) &&
+      !(taxesExtra > 0) &&
+      /\+|tax|charge|fee/i.test(taxesText);
+
+    let pricePerNight = Number.isFinite(Number(h?.pricePerNight)) ? Math.round(Number(h.pricePerNight)) : null;
+    let priceTotalStay = Number.isFinite(Number(h?.priceTotalStay)) ? Math.round(Number(h.priceTotalStay)) : null;
+
+    if (pricePerNight == null && priceTotalStay == null) {
+      let legacy = Number.isFinite(Number(h?.priceValue)) ? Math.round(Number(h.priceValue)) : null;
+      if (legacy == null && h?.price) {
+        const pm = String(h.price).match(/([\d][\d,]*(?:\.\d+)?)/);
+        if (pm) legacy = Math.round(parseFloat(pm[1].replace(/,/g, '')));
+      }
+      if (legacy != null) {
+        if (basis === 'total_stay') priceTotalStay = legacy;
+        else pricePerNight = legacy;
+      }
+    }
+
+    let perNightInclTax = null;
+    let priceLabel = '';
+    if (!taxesAmbiguous) {
+      if (pricePerNight != null) {
+        perNightInclTax = Math.round((pricePerNight * n + taxesExtra) / n);
+      } else if (priceTotalStay != null) {
+        perNightInclTax = Math.round((priceTotalStay + taxesExtra) / n);
+      }
+      if (perNightInclTax != null) priceLabel = `CAD ${perNightInclTax}`;
+    } else if (pricePerNight != null) {
+      priceLabel = `CAD ${pricePerNight}+ tax`;
+    }
+
+    const stayValue =
+      priceTotalStay != null ? priceTotalStay : pricePerNight != null ? pricePerNight * n : null;
+
     return {
       stayValue,
       perNightInclTax,
-      priceLabel: `CAD ${perNightInclTax}`,
+      priceLabel,
+      taxesAmbiguous,
     };
   }
 
@@ -5180,6 +5217,7 @@ out body;`;
         driveTime: km != null ? formatDriveTime(km) : '',
         perNightInclTax: priced.perNightInclTax,
         priceLabel: priced.priceLabel,
+        taxesAmbiguous: !!priced.taxesAmbiguous,
         rawPrice: h.price || '',
         nights,
         reviewScore: h.reviewScore ? String(h.reviewScore) : '',
@@ -5192,9 +5230,13 @@ out body;`;
       };
     });
 
-    // Budget: include listings at or under cap; if price was not scraped, still show (rate on Booking link).
-    const budgetOk = (it) =>
-      budgetCap <= 0 || it.perNightInclTax == null || it.perNightInclTax <= budgetCap;
+    // Budget: ≤ cap on known all-in nightly; skip pre-tax-only when "+ tax" has no amount; no price still shows.
+    const budgetOk = (it) => {
+      if (budgetCap <= 0) return true;
+      if (it.taxesAmbiguous) return false;
+      if (it.perNightInclTax == null) return true;
+      return it.perNightInclTax <= budgetCap;
+    };
     const withinRadius = mapped.filter((it) => it.distance == null || it.distance <= radiusKm);
     const withinBudget = withinRadius.filter(budgetOk);
 

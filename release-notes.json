@@ -1,10 +1,38 @@
 {
-  "latest": "v75",
-  "appVersion": "3.5.3",
+  "latest": "v77",
+  "appVersion": "3.5.4",
   "highlights": [
-    "Hotel Finder: nightly prices restored in results and email draft."
+    "Hotel Finder: correct all-in nightly prices and $200/night budget (all provinces)."
   ],
   "builds": {
+    "v77": {
+      "intro": "Investigator Toolbox 3.5.4 — all-in nightly price and budget cap (all provinces).",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Worker 62: per-night vs total-stay price fix; tax add-on math for $200/night incl. tax cap.",
+            "Skips budget match when Booking shows +tax without a dollar amount (no false under-$200).",
+            "Same logic for every province/territory (AB–YT); cap from maxNightlyByProvince.",
+            "Deploy booking-worker-62 on Cloudflare plus the three GitHub files; hard-refresh; new Search."
+          ]
+        }
+      ]
+    },
+    "v76": {
+      "intro": "Investigator Toolbox 3.5.4 — fix nightly price calculation.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "Worker 61 distinguishes per-night card rates from total-stay JSON (no double-divide).",
+            "Results and email draft use the same nightly math as cloudflare/booking-price.js.",
+            "After editing booking-price.js run: node scripts/build-booking-worker.mjs then deploy worker.",
+            "Deploy booking-worker-61 plus the three GitHub files; hard-refresh and run a new Search."
+          ]
+        }
+      ]
+    },
     "v75": {
       "intro": "Investigator Toolbox 3.5.3 — restore Booking nightly prices.",
       "sections": [
