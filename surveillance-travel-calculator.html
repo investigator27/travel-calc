@@ -12,7 +12,7 @@
     } catch (e) {}
     var root = document.documentElement;
     root.setAttribute('data-theme', theme);
-    root.style.backgroundColor = theme === 'dark' ? '#171614' : '#f7f6f2';
+    root.style.backgroundColor = theme === 'dark' ? '#171614' : '#ffffff';
     root.style.colorScheme = theme;
     var meta = document.querySelector('meta[name="theme-color"]:not([media])');
     if (!meta) {
@@ -20,11 +20,11 @@
       meta.name = 'theme-color';
       document.head.appendChild(meta);
     }
-    meta.content = theme === 'dark' ? '#171614' : '#f7f6f2';
+    meta.content = theme === 'dark' ? '#171614' : '#ffffff';
   })();
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f7f6f2" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#171614" media="(prefers-color-scheme: dark)" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -56,9 +56,9 @@
       --text-lg:clamp(1.125rem,1rem + 0.75vw,1.5rem);
       --text-xl:clamp(1.5rem,1.2rem + 1.25vw,2.25rem);
       --space-1:0.25rem;--space-2:0.5rem;--space-3:0.75rem;--space-4:1rem;--space-5:1.25rem;--space-6:1.5rem;--space-8:2rem;
-      --color-bg:#f2f0eb;--color-surface:#ffffff;--color-surface-2:#f5f3ee;--color-surface-offset:#ebe8e2;--color-divider:#ddd8d0;--color-border:#c8c3ba;
-      --color-text:#28251d;--color-text-muted:#64635e;--color-text-faint:#94928c;--color-text-inverse:#f9f8f4;
-      --color-primary:#f7f6f2;--color-primary-hover:#0c4e54;--color-primary-highlight:#d9ecea;
+      --color-bg:#ffffff;--color-surface:#ffffff;--color-surface-2:#f5f5f5;--color-surface-offset:#f0f0f0;--color-divider:#e5e5e5;--color-border:#e0e0e0;
+      --color-text:#1a1a1a;--color-text-muted:#5c5c5c;--color-text-faint:#8a8a8a;--color-text-inverse:#ffffff;
+      --color-primary:#dc2626;--color-primary-hover:#b91c1c;--color-primary-highlight:#fee2e2;
       --color-success:#437a22;--color-error:#a12c7b;
       --radius-sm:0.375rem;--radius-md:0.5rem;--radius-lg:0.875rem;--radius-xl:1rem;--radius-full:9999px;
       --shadow-sm:0 1px 3px rgb(25 23 18/.09);--shadow-md:0 8px 22px rgb(25 23 18/.1);
@@ -233,7 +233,10 @@
       color:var(--color-text);
       background:color-mix(in srgb,var(--color-text) 8%,var(--color-bg));
     }
-    [data-theme="light"] .tab-bar-item.active{color:var(--color-text)}
+    [data-theme="light"] .tab-bar-item.active{
+      color:var(--color-primary);
+      background:color-mix(in srgb,var(--color-primary) 10%,var(--color-bg));
+    }
     [data-theme="dark"] .tab-bar-item.active{color:var(--color-text)}
     .tab-bar-item--disabled{
       opacity:.32;
@@ -983,7 +986,7 @@
       padding:0;
       box-sizing:border-box;
       border-radius:999px;
-      background:#dc2626;
+      background:var(--color-primary);
       color:#fff;
       font-size:12px;
       font-weight:800;
@@ -1900,7 +1903,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v117';
+  const BUNDLED_PWA_CACHE_VERSION = 'v118';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3326,7 +3329,7 @@
 
   function syncThemeMeta(theme) {
     if (!themeMeta) return;
-    themeMeta.setAttribute('content', theme === 'dark' ? '#f7f6f2' : '#f7f6f2');
+    themeMeta.setAttribute('content', theme === 'dark' ? '#171614' : '#ffffff');
   }
 
   function setStatus(message, mode = '') {
@@ -3372,7 +3375,7 @@
     root.dataset.themePref = preference;
     syncThemeMeta(theme);
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#171614' : '#f7f6f2');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#171614' : '#ffffff');
     try { localStorage.setItem('travelCalcTheme', preference); } catch {}
     syncThemeSwitchUi(preference);
   }
@@ -4715,9 +4718,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <style>
 :root, [data-theme="light"] {
-  --color-primary: #000000;
-  --color-primary-hover: #1a1a1a;
-  --color-primary-highlight: #d9ecea;
+  --color-primary: #dc2626;
+  --color-primary-hover: #b91c1c;
+  --color-primary-highlight: #fee2e2;
 }
 [data-theme="dark"] {
   --color-primary: #7a7a7a;
@@ -4753,14 +4756,14 @@ textarea:focus, textarea:focus-visible {
 [data-theme="light"] .btn-primary,
 [data-theme="light"] .sw-update-btn.btn-primary {
   background: var(--color-primary) !important;
-  color: #f9f8f4 !important;
+  color: #ffffff !important;
 }
 [data-theme="light"] .btn-primary:hover,
 [data-theme="light"] .btn-primary:active,
 [data-theme="light"] .sw-update-btn.btn-primary:hover,
 [data-theme="light"] .sw-update-btn.btn-primary:active {
   background: var(--color-primary-hover) !important;
-  color: #f9f8f4 !important;
+  color: #ffffff !important;
 }
 [data-theme="dark"] .btn-primary,
 [data-theme="dark"] .sw-update-btn.btn-primary {

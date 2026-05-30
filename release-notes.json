@@ -1,10 +1,23 @@
 {
-  "latest": "v117",
+  "latest": "v118",
   "appVersion": "3.5.4",
   "highlights": [
-    "Consistent button styles: primary actions filled, secondary neutral, trip picker and menus use selection chips."
+    "Light theme: clean white surfaces with red accents matching the Toolbox icon."
   ],
   "builds": {
+    "v118": {
+      "intro": "Investigator Toolbox 3.5.4 — light theme refresh (white + red).",
+      "sections": [
+        {
+          "heading": "Personalization",
+          "items": [
+            "Light mode drops the manila background for white and cool gray surfaces.",
+            "Primary buttons, tab accent, focus rings, and badges use Toolbox red (#dc2626). Dark theme unchanged.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, release-notes.json, and manifest.webmanifest (v118)."
+          ]
+        }
+      ]
+    },
     "v117": {
       "intro": "Investigator Toolbox 3.5.4 — unified button hierarchy.",
       "sections": [
