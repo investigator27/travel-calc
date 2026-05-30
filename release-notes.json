@@ -1,12 +1,25 @@
 {
-  "latest": "v47",
-  "appVersion": "3.1.8",
+  "latest": "v48",
+  "appVersion": "3.1.9",
   "highlights": [
-    "Hotel search auto-retries once when Booking.com is slow (common on desktop).",
-    "Worker stops ScraperAPI when hotel cards appear (faster than full page load).",
-    "Deploy v47 app + booking-worker-47 on Cloudflare."
+    "Hotel search shows rotating status messages (area, amenities, almost done).",
+    "Match count (1/3/5/8) does not change ScraperAPI cost — one scrape per search.",
+    "Upload v48 to GitHub; Worker unchanged if already on booking-worker-47."
   ],
   "builds": {
+    "v48": {
+      "intro": "Investigator Toolbox 3.1.9 — Hotel Finder search status messages.",
+      "sections": [
+        {
+          "heading": "Hotel Finder",
+          "items": [
+            "While searching, status text cycles through mapping, Booking.com, amenities you toggled, and almost-done lines.",
+            "Free parking/breakfast toggles appear in messages; confirm details on each Booking link.",
+            "Number of matches shown (1–8) filters results after one scrape — same API credits either way."
+          ]
+        }
+      ]
+    },
     "v47": {
       "intro": "Investigator Toolbox 3.1.8 — Hotel Finder slow-search retry.",
       "sections": [

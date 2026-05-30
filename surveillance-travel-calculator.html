@@ -732,12 +732,12 @@
   const minutesInput = $('minutes');
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
-  let APP_VERSION = '3.1.8';
+  let APP_VERSION = '3.1.9';
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
     || /[?&]pwa=1(?:&|$)/.test(location.search);
   const DEV_MODE = IS_LOCAL_DEV && !PWA_TEST_MODE;
-  let PWA_CACHE_VERSION = 'v47';
+  let PWA_CACHE_VERSION = 'v48';
   const BASE_PATH = window.__BASE_PATH__ || '/investigator-toolbox/';
   const UPDATE_BANNER_TRANSITION_MS = 2400;
   const UPDATE_BANNER_HIDE_MS = UPDATE_BANNER_TRANSITION_MS;
@@ -2400,6 +2400,104 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`;
   }
 
+  const HOTEL_PROGRESS_TICK_MS = 4000;
+  let hotelProgressTimer = null;
+  let hotelProgressGeneration = 0;
+
+  function stopHotelSearchProgress() {
+    hotelProgressGeneration += 1;
+    if (hotelProgressTimer) {
+      clearInterval(hotelProgressTimer);
+      hotelProgressTimer = null;
+    }
+  }
+
+  function getAmenitySearchPhrase() {
+    const parts = [];
+    if (els.freeBreakfast?.checked) parts.push('free breakfast');
+    if (els.freeParking?.checked) parts.push('free parking');
+    if (els.freeCancellation?.checked) parts.push('free cancellation');
+    if (!parts.length) return '';
+    if (parts.length === 1) return parts[0];
+    if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+    return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
+  }
+
+  function buildHotelProgressMessages(phase) {
+    const ctx = lastSearchContext || resolveHotelSearchContext();
+    const area = ctx?.label || ctx?.destination || 'your event area';
+    const amenity = getAmenitySearchPhrase();
+    const matchN = Math.max(1, Number.parseInt(els.matchCount?.value || '3', 10));
+    const radiusKm = getMaxDistanceKm();
+
+    if (phase === 'geocode') {
+      return [
+        `Mapping the surveillance area near ${area}…`,
+        'Looking up coordinates in Canada…',
+        'Pinning your search on the map…',
+      ];
+    }
+    if (phase === 'retry') {
+      return [
+        'Booking.com needed an extra moment — one more pass…',
+        `Still searching near ${area}…`,
+        'Second try — hang tight…',
+        'Almost there on the retry…',
+      ];
+    }
+    if (phase === 'finishing') {
+      return [
+        'Sorting by distance and your nightly cap…',
+        `Picking up to ${matchN} best fit${matchN === 1 ? '' : 's'} for your dates…`,
+        'Almost done — your short list is ready…',
+        'There we go — loading your results…',
+      ];
+    }
+
+    const lines = [
+      `Searching Booking.com for hotels near ${area}…`,
+    ];
+    if (amenity) {
+      lines.push(
+        `Scanning nearby listings (${amenity} — confirm on each hotel’s Booking link)…`,
+        `Looking for up to ${matchN} options while noting ${amenity}…`
+      );
+    } else {
+      lines.push(`Pulling rates and reviews (showing up to ${matchN} matches)…`);
+    }
+    lines.push(
+      `Checking stays within ${radiusKm} km of the event…`,
+      'Crunching nightly prices where Booking shows tax…',
+      'Comparing distance, price, and review scores…',
+      'Still on it — good hotels take a few seconds to find…',
+      'Warming up the short list…',
+      'Nearly there — packaging your top picks…',
+    );
+    return lines;
+  }
+
+  function startHotelSearchProgress(phase) {
+    stopHotelSearchProgress();
+    const messages = buildHotelProgressMessages(phase);
+    if (!messages.length) return;
+    const gen = hotelProgressGeneration;
+    let index = 0;
+    showHotelSearchProgress(messages[0]);
+    hotelProgressTimer = setInterval(() => {
+      if (gen !== hotelProgressGeneration) return;
+      index = (index + 1) % messages.length;
+      showHotelSearchProgress(messages[index]);
+    }, HOTEL_PROGRESS_TICK_MS);
+  }
+
+  async function playHotelSearchFinishingBeat() {
+    const messages = buildHotelProgressMessages('finishing');
+    for (let i = 0; i < messages.length; i++) {
+      showHotelSearchProgress(messages[i]);
+      await new Promise((r) => setTimeout(r, i < messages.length - 1 ? 1700 : 700));
+    }
+  }
+
   function setStatus(message, mode = '') {
     if (!els.status) return;
     els.status.className = `status show${mode ? ` ${mode}` : ''}`;
@@ -2875,21 +2973,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxAttempts = 2;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       if (attempt > 0) {
-        showHotelSearchProgress('Booking.com was slow; retrying once (about 30 more seconds)…');
+        startHotelSearchProgress('retry');
         await new Promise((r) => setTimeout(r, 1200));
       }
 
       const BOOKING_SEARCH_TIMEOUT_MS = 90000;
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), BOOKING_SEARCH_TIMEOUT_MS);
-      let slowHintTimer = null;
-      slowHintTimer = setTimeout(() => {
-        showHotelSearchProgress(
-          attempt === 0
-            ? 'Still searching Booking.com… usually 20–40 seconds; slow runs retry once automatically.'
-            : 'Second attempt in progress…'
-        );
-      }, 22000);
       try {
         const response = await fetch(getBookingApiUrl(params), { cache: 'no-store', signal: controller.signal });
         if (response.status === 404) {
@@ -2926,7 +3016,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { ok: false, hotels: [], error: friendly };
       } finally {
         clearTimeout(timer);
-        if (slowHintTimer) clearTimeout(slowHintTimer);
       }
     }
 
@@ -3597,7 +3686,6 @@ out body;`;
     const ctx = lastSearchContext;
     if (!ctx) return { items: [], requested, verifyMode: 'none' };
 
-    if (typeof onProgress === 'function') onProgress('Searching Booking.com… usually 20–40 seconds; slow runs retry once automatically.');
     const result = await loadBookingHotels(ctx, geo);
     const areaSearchUrl = buildBookingAreaSearchUrl(ctx, geo);
 
@@ -3861,16 +3949,20 @@ out body;`;
     els.emailBody.textContent = '';
     els.emailSubject.value = '';
     setEmailActionsEnabled(false);
-    showHotelSearchProgress('Mapping address…');
+    startHotelSearchProgress('geocode');
     requestAnimationFrame(() => requestAnimationFrame(scrollToHotelSearchActivity));
 
     let geo = null;
     try {
       geo = await geocodeCanadianAddress(meta.searchAddress, ctx);
       meta.geo = geo;
-      showHotelSearchProgress('Searching Booking.com… usually 20–40 seconds; amenity filters can take longer.');
+      startHotelSearchProgress('booking');
       scrollToHotelSearchActivity();
-      const ranked = await fetchAndRankHotels(meta, geo, showHotelSearchProgress);
+      const ranked = await fetchAndRankHotels(meta, geo);
+      stopHotelSearchProgress();
+      if (ranked.items.length > 0) {
+        await playHotelSearchFinishingBeat();
+      }
       renderHotelResults(ranked.items, meta, geo, ranked.requested, {
         verifyMode: ranked.verifyMode,
         inventoryError: ranked.inventoryError,
@@ -3879,6 +3971,7 @@ out body;`;
         nearbyCount: ranked.nearbyCount
       });
     } catch (err) {
+      stopHotelSearchProgress();
       const detail = String(err?.message || '').replace(/^Hotel lookup failed:?\s*/i, '').trim();
       const message = detail && detail !== 'Hotel lookup failed'
         ? `Hotel lookup failed. ${detail} Wait a few seconds and try again.`
@@ -3887,6 +3980,7 @@ out body;`;
       els.results.innerHTML = '';
       scrollToHotelResults();
     } finally {
+      stopHotelSearchProgress();
       els.searchBtn.disabled = false;
     }
   }
