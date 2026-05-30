@@ -281,18 +281,37 @@
     .hint{font-size:var(--text-xs);color:var(--color-text-muted)}
     .seg-label{font-size:var(--text-sm);font-weight:700;margin-bottom:var(--space-2)}
     .segmented{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);background:var(--color-surface-offset);padding:var(--space-2);border-radius:var(--radius-lg)}
-    .segment{min-height:52px;border-radius:var(--radius-md);background:transparent;color:var(--color-text-muted);font-weight:700;font-size:var(--text-sm)}
-    .segment.active{background:var(--color-primary);color:var(--color-text-inverse);box-shadow:var(--shadow-sm)}
-    .btn{min-height:54px;padding:0.95rem 1rem;border-radius:var(--radius-lg);font-weight:700;font-size:var(--text-base);width:100%;text-align:center}
-    .btn-primary{background:var(--color-primary);color:var(--color-text-inverse);box-shadow:var(--shadow-md)}
+    .segment{min-height:52px;border-radius:var(--radius-md);background:transparent;color:var(--color-text-muted);font-weight:700;font-size:var(--text-sm);border:1px solid transparent}
+    .segment.active{
+      background:var(--color-surface);
+      color:var(--color-text);
+      border-color:var(--color-border);
+      box-shadow:var(--shadow-sm);
+    }
+    .btn{min-height:54px;padding:0.95rem 1rem;border-radius:var(--radius-lg);font-weight:700;font-size:var(--text-base);width:100%;text-align:center;color:var(--color-text)}
+    .btn-primary{background:var(--color-primary);color:var(--color-text-inverse);box-shadow:var(--shadow-md);border:1px solid transparent}
     .btn-primary:hover{background:var(--color-primary-hover)}
-    .btn-primary:active{transform:scale(0.98)}
-    .btn-secondary{background:var(--color-surface-offset);border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent)}
+    .btn-primary:active{background:var(--color-primary-hover);transform:scale(0.98)}
+    .btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-secondary{background:var(--color-surface-offset);border:1px solid var(--color-border);color:var(--color-text)}
     .btn-secondary:hover{background:var(--color-divider)}
-    #mapsBtn{background:var(--color-primary);color:var(--color-text-inverse);box-shadow:var(--shadow-md)}
-    #mapsBtn:hover{background:var(--color-primary-hover)}
-    #mapsBtn:active{background:var(--color-primary-hover);transform:scale(0.98)}
-    #mapsBtn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px;border-radius:var(--radius-sm)}
+    .btn-secondary:active{background:color-mix(in srgb,var(--color-text) 10%,var(--color-divider));transform:scale(0.98)}
+    .btn-secondary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .btn-tertiary{
+      width:auto;
+      min-height:44px;
+      padding:var(--space-2) var(--space-3);
+      font-weight:600;
+      font-size:var(--text-sm);
+      color:var(--color-text);
+      background:transparent;
+      border:1px solid transparent;
+      box-shadow:none;
+    }
+    .btn-tertiary:hover{background:var(--color-surface-offset)}
+    .btn-tertiary:active{background:var(--color-divider);transform:scale(0.98)}
+    .icon-btn:hover{background:var(--color-surface-offset)}
+    .icon-btn:active{background:var(--color-divider);transform:scale(0.98)}
     .status{font-size:var(--text-sm);padding:0.9rem 1rem;border-radius:var(--radius-lg);background:var(--color-surface-offset);color:var(--color-text-muted);display:none}
     .status.show{display:block}.status.error{background:color-mix(in srgb,var(--color-error) 10%,var(--color-surface));color:var(--color-error)}.status.success{background:color-mix(in srgb,var(--color-success) 12%,var(--color-surface));color:var(--color-success)}
     .status.searching{background:color-mix(in srgb,var(--color-primary) 8%,var(--color-surface-offset));color:var(--color-text);display:grid;gap:var(--space-3)}
@@ -435,17 +454,11 @@
       width:100%;
       min-height:50px;
       border-radius:var(--radius-full);
-      background:var(--color-primary);
-      color:var(--color-text-inverse);
-      font-weight:600;
-      font-size:var(--text-base);
       display:flex;
       align-items:center;
       justify-content:center;
       gap:var(--space-2);
     }
-    .sw-update-btn:disabled{opacity:.65;cursor:default}
-    .sw-update-btn:not(:disabled):active{background:var(--color-primary-hover)}
     .sw-update-btn__spinner{
       width:18px;
       height:18px;
@@ -502,11 +515,6 @@
     }
     .sw-update-link{
       margin-top:var(--space-4);
-      padding:var(--space-2) var(--space-3);
-      font-size:var(--text-base);
-      font-weight:600;
-      color:var(--color-primary);
-      background:transparent;
     }
     .sw-update-error{
       text-align:center;
@@ -515,14 +523,9 @@
       font-size:var(--text-sm);
       line-height:1.5;
     }
-    .sw-update-recheck{
+    .sw-update-recheck:not(.sw-update-recheck--footer){
       width:100%;
       margin-top:var(--space-2);
-      min-height:44px;
-      font-weight:600;
-      font-size:var(--text-sm);
-      color:var(--color-primary);
-      background:transparent;
     }
     .sw-whatsnew-card{padding:var(--space-4)}
     .sw-whatsnew-card .update-notes-section h3{
@@ -751,6 +754,7 @@
       margin:var(--space-4) auto var(--space-2);
       text-align:center;
     }
+    .sw-update-uptodate .btn-tertiary{width:100%}
     .settings-section-title{
       margin:0 0 var(--space-2);
       padding-left:var(--space-1);
@@ -1497,7 +1501,7 @@
                   </div>
                   <p class="sw-update-card__summary" id="swUpdateSummary"></p>
                   <p class="sw-update-card__status hidden" id="swUpdateStatusLine"></p>
-                  <button type="button" class="sw-update-btn" id="swUpdateNowBtn">Update Now</button>
+                  <button type="button" class="btn btn-primary sw-update-btn" id="swUpdateNowBtn">Update Now</button>
                 </div>
               </div>
             </div>
@@ -1507,14 +1511,14 @@
               </div>
               <h2 class="settings-screen-title sw-update-uptodate__title">Toolbox is up to date</h2>
               <p class="sw-update-uptodate__version" id="swUpdateUptodateVersion">—</p>
-              <button type="button" class="sw-update-link" id="swUpdateMoreDetails">More Details</button>
+              <button type="button" class="btn btn-tertiary sw-update-link" id="swUpdateMoreDetails">More Details</button>
             </div>
             <div class="sw-update-error hidden" id="swUpdateError">
               <p id="swUpdateErrorText">Could not check for updates.</p>
-              <button type="button" class="sw-update-recheck" id="swUpdateRetryBtn">Try Again</button>
+              <button type="button" class="btn btn-tertiary sw-update-recheck" id="swUpdateRetryBtn">Try Again</button>
             </div>
           </div>
-          <button type="button" class="sw-update-recheck sw-update-recheck--footer hidden" id="settingsCheckUpdateBtn">Check Again</button>
+          <button type="button" class="btn btn-tertiary sw-update-recheck sw-update-recheck--footer hidden" id="settingsCheckUpdateBtn">Check Again</button>
           <span class="hidden" id="settingsVersionLine" aria-hidden="true"></span>
           <button type="button" class="btn btn-secondary hidden" id="settingsPwaTestBtn" style="margin-top:var(--space-3)">Test update flow (local)</button>
         </div>
@@ -1896,7 +1900,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v116';
+  const BUNDLED_PWA_CACHE_VERSION = 'v117';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -4713,14 +4717,14 @@ document.addEventListener('DOMContentLoaded', () => {
 :root, [data-theme="light"] {
   --color-primary: #000000;
   --color-primary-hover: #1a1a1a;
-  --color-primary-highlight: #7a7a7a;
+  --color-primary-highlight: #d9ecea;
 }
 [data-theme="dark"] {
   --color-primary: #7a7a7a;
   --color-primary-hover: #9a9a9a;
-  --color-primary-highlight: #7a7a7a;
+  --color-primary-highlight: #2a3435;
 }
-button, .btn, .btn-primary, .btn-secondary, .segment, .icon-btn, .menu-item, .menu-half, .city-btn, .city-item, input, select, textarea {
+button, .btn, .btn-primary, .btn-secondary, .btn-tertiary, .segment, .icon-btn, .menu-item, .menu-half, .city-btn, .city-item, input, select, textarea {
   -webkit-tap-highlight-color: transparent !important;
   transition: none !important;
 }
@@ -4728,6 +4732,7 @@ button:focus, button:focus-visible,
 .btn:focus, .btn:focus-visible,
 .btn-primary:focus, .btn-primary:focus-visible,
 .btn-secondary:focus, .btn-secondary:focus-visible,
+.btn-tertiary:focus, .btn-tertiary:focus-visible,
 .segment:focus, .segment:focus-visible,
 .icon-btn:focus, .icon-btn:focus-visible,
 .menu-item:focus, .menu-item:focus-visible,
@@ -4742,86 +4747,48 @@ textarea:focus, textarea:focus-visible {
 input:focus, input:focus-visible,
 select:focus, select:focus-visible,
 textarea:focus, textarea:focus-visible {
-  border-color: var(--color-primary-highlight) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-highlight) 18%, transparent) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent) !important;
 }
-[data-theme="light"] .segment.active,
-[data-theme="light"] #mapsBtn,
-[data-theme="light"] #calculateBtn,
-[data-theme="light"] #searchHotelBtn,
-[data-theme="light"] #hotelSendEmailBtn,
 [data-theme="light"] .btn-primary,
-[data-theme="light"] .menu-panel .menu-item.selected,
-[data-theme="light"] .menu-panel .menu-half.selected,
-[data-theme="light"] .menu-panel .menu-item:active,
-[data-theme="light"] .menu-panel .menu-half:active,
-[data-theme="light"] .menu-wrap .city-btn.selected,
-[data-theme="light"] .menu-wrap .city-item.selected,
-[data-theme="light"] .icon-btn:active,
-[data-theme="light"] .icon-btn:hover {
+[data-theme="light"] .sw-update-btn.btn-primary {
   background: var(--color-primary) !important;
   color: #f9f8f4 !important;
 }
-[data-theme="light"] .segment.active:hover,
-[data-theme="light"] .segment.active:active,
-[data-theme="light"] #mapsBtn:hover,
-[data-theme="light"] #mapsBtn:active,
-[data-theme="light"] #calculateBtn:hover,
-[data-theme="light"] #calculateBtn:active,
-[data-theme="light"] #searchHotelBtn:hover,
-[data-theme="light"] #searchHotelBtn:active,
-[data-theme="light"] #hotelSendEmailBtn:hover,
-[data-theme="light"] #hotelSendEmailBtn:active,
 [data-theme="light"] .btn-primary:hover,
 [data-theme="light"] .btn-primary:active,
-[data-theme="light"] .menu-panel .menu-item.selected:hover,
-[data-theme="light"] .menu-panel .menu-item.selected:active,
-[data-theme="light"] .menu-panel .menu-half.selected:hover,
-[data-theme="light"] .menu-panel .menu-half.selected:active,
-[data-theme="light"] .menu-wrap .city-btn.selected:hover,
-[data-theme="light"] .menu-wrap .city-btn.selected:active,
-[data-theme="light"] .menu-wrap .city-item.selected:hover,
-[data-theme="light"] .menu-wrap .city-item.selected:active {
+[data-theme="light"] .sw-update-btn.btn-primary:hover,
+[data-theme="light"] .sw-update-btn.btn-primary:active {
   background: var(--color-primary-hover) !important;
+  color: #f9f8f4 !important;
 }
-[data-theme="dark"] .segment.active,
-[data-theme="dark"] #mapsBtn,
-[data-theme="dark"] #calculateBtn,
-[data-theme="dark"] #searchHotelBtn,
-[data-theme="dark"] #hotelSendEmailBtn,
 [data-theme="dark"] .btn-primary,
-[data-theme="dark"] .menu-panel .menu-item.selected,
-[data-theme="dark"] .menu-panel .menu-half.selected,
-[data-theme="dark"] .menu-panel .menu-item:active,
-[data-theme="dark"] .menu-panel .menu-half:active,
-[data-theme="dark"] .menu-wrap .city-btn.selected,
-[data-theme="dark"] .menu-wrap .city-item.selected,
-[data-theme="dark"] .icon-btn:active,
-[data-theme="dark"] .icon-btn:hover {
+[data-theme="dark"] .sw-update-btn.btn-primary {
   background: var(--color-primary) !important;
   color: #f9f8f4 !important;
 }
-[data-theme="dark"] .segment.active:hover,
-[data-theme="dark"] .segment.active:active,
-[data-theme="dark"] #mapsBtn:hover,
-[data-theme="dark"] #mapsBtn:active,
-[data-theme="dark"] #calculateBtn:hover,
-[data-theme="dark"] #calculateBtn:active,
-[data-theme="dark"] #searchHotelBtn:hover,
-[data-theme="dark"] #searchHotelBtn:active,
-[data-theme="dark"] #hotelSendEmailBtn:hover,
-[data-theme="dark"] #hotelSendEmailBtn:active,
 [data-theme="dark"] .btn-primary:hover,
 [data-theme="dark"] .btn-primary:active,
-[data-theme="dark"] .menu-panel .menu-item.selected:hover,
-[data-theme="dark"] .menu-panel .menu-item.selected:active,
-[data-theme="dark"] .menu-panel .menu-half.selected:hover,
-[data-theme="dark"] .menu-panel .menu-half.selected:active,
-[data-theme="dark"] .menu-wrap .city-btn.selected:hover,
-[data-theme="dark"] .menu-wrap .city-btn.selected:active,
-[data-theme="dark"] .menu-wrap .city-item.selected:hover,
-[data-theme="dark"] .menu-wrap .city-item.selected:active {
+[data-theme="dark"] .sw-update-btn.btn-primary:hover,
+[data-theme="dark"] .sw-update-btn.btn-primary:active {
   background: var(--color-primary-hover) !important;
+  color: #f9f8f4 !important;
+}
+.menu-panel .menu-item.selected,
+.menu-panel .menu-half.selected,
+.menu-wrap .city-btn.selected,
+.menu-wrap .city-item.selected {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.menu-panel .menu-item:active:not(.selected),
+.menu-panel .menu-half:active:not(.selected),
+.menu-wrap .city-btn:active:not(.selected),
+.menu-wrap .city-item:active:not(.selected) {
+  background: var(--color-surface-offset) !important;
+  color: var(--color-text) !important;
 }
 </style>
 

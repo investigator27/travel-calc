@@ -1,10 +1,23 @@
 {
-  "latest": "v116",
+  "latest": "v117",
   "appVersion": "3.5.4",
   "highlights": [
-    "Light theme has stronger contrast in settings — cards and sections stand out more."
+    "Consistent button styles: primary actions filled, secondary neutral, trip picker and menus use selection chips."
   ],
   "builds": {
+    "v117": {
+      "intro": "Investigator Toolbox 3.5.4 — unified button hierarchy.",
+      "sections": [
+        {
+          "heading": "UI",
+          "items": [
+            "Primary: Calculate, Search Hotels, Send Email, Update Now. Secondary: Clear, Maps, Copy. Tertiary text: Check Again.",
+            "One-way/Round trip and menus use bordered selection, not solid black fill. Settings menu icon stays neutral when pressed.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v117)."
+          ]
+        }
+      ]
+    },
     "v116": {
       "intro": "Investigator Toolbox 3.5.4 — light theme settings contrast.",
       "sections": [
