@@ -1,10 +1,35 @@
 {
-  "latest": "v95",
+  "latest": "v97",
   "appVersion": "3.5.4",
   "highlights": [
-    "Clearer search status text; Software Update slides up from the bottom."
+    "Red 1 update badge on menu and Software Update only."
   ],
   "builds": {
+    "v97": {
+      "intro": "Investigator Toolbox 3.5.4 — update badge placement.",
+      "sections": [
+        {
+          "heading": "Updates",
+          "items": [
+            "Red 1 badge on the menu button and Software Update row only (not on the header logo).",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, release-notes.json (v97)."
+          ]
+        }
+      ]
+    },
+    "v96": {
+      "intro": "Investigator Toolbox 3.5.4 — update notification badge.",
+      "sections": [
+        {
+          "heading": "Updates",
+          "items": [
+            "Grey dot replaced with a red 1 on the menu button when an update is ready.",
+            "Software Update row shows the same red 1; badge clears after install.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, release-notes.json (v96)."
+          ]
+        }
+      ]
+    },
     "v95": {
       "intro": "Investigator Toolbox 3.5.4 — wording and update screen motion.",
       "sections": [
