@@ -41,6 +41,8 @@
   let clipViewerUrl = null;
   let orientationWatchHandler = null;
   let usedFullscreenForOrientation = false;
+  let recordingStartedAt = 0;
+  let recordingGeo = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -95,8 +97,9 @@
     return dbPromise;
   }
 
-  async function saveClip(blob, mimeType) {
+  async function saveClip(blob, mimeType, meta) {
     const id = nextClipId();
+    const m = meta || {};
     const db = await openDb();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite');
@@ -104,8 +107,12 @@
         id,
         blob,
         mimeType: mimeType || blob.type,
-        createdAt: Date.now(),
+        createdAt: m.recordedAt || Date.now(),
         size: blob.size,
+        durationSeconds: m.durationSeconds || 0,
+        latitude: m.latitude,
+        longitude: m.longitude,
+        locationLabel: m.locationLabel || '',
       });
       tx.oncomplete = () => resolve(id);
       tx.onerror = () => reject(tx.error);
@@ -118,7 +125,7 @@
       const tx = db.transaction(STORE, 'readonly');
       const req = tx.objectStore(STORE).getAll();
       req.onsuccess = () => {
-        const list = (req.result || []).sort((a, b) => a.id.localeCompare(b.id));
+        const list = (req.result || []).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         resolve(list);
       };
       req.onerror = () => reject(req.error);
@@ -157,6 +164,81 @@
     if (n < 1024) return `${n} B`;
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
     return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function formatDuration(seconds) {
+    const s = Math.max(0, Math.round(seconds || 0));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${String(r).padStart(2, '0')}`;
+  }
+
+  function formatClipDate(timestamp) {
+    const d = new Date(timestamp || Date.now());
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
+
+  function formatCoords(geo) {
+    if (!geo || !Number.isFinite(geo.lat) || !Number.isFinite(geo.lng)) return '';
+    const ns = geo.lat >= 0 ? 'N' : 'S';
+    const ew = geo.lng >= 0 ? 'E' : 'W';
+    return `${Math.abs(geo.lat).toFixed(4)}° ${ns}, ${Math.abs(geo.lng).toFixed(4)}° ${ew}`;
+  }
+
+  function formatClipDetailsLine(clip, durationSeconds) {
+    const parts = [];
+    if (durationSeconds > 0) parts.push(formatDuration(durationSeconds));
+    if (clip.createdAt) parts.push(formatClipDate(clip.createdAt));
+    const loc =
+      clip.locationLabel ||
+      formatCoords(
+        Number.isFinite(clip.latitude) ? { lat: clip.latitude, lng: clip.longitude } : null
+      );
+    parts.push(loc || 'Location unavailable');
+    return parts.join(' · ');
+  }
+
+  function probeBlobDuration(blob) {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      const url = URL.createObjectURL(blob);
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        const d = Number.isFinite(video.duration) ? video.duration : 0;
+        URL.revokeObjectURL(url);
+        resolve(d);
+      };
+      video.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(0);
+      };
+      video.src = url;
+    });
+  }
+
+  function captureRecordingGeo() {
+    if (!navigator.geolocation) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) =>
+          resolve({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            locationLabel: formatCoords({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            }),
+          }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 120000 }
+      );
+    });
   }
 
   function pickMimeType() {
@@ -344,22 +426,25 @@
     }
 
     list.innerHTML = '';
-    clips.forEach((clip) => {
+    for (const clip of clips) {
       const url = URL.createObjectURL(clip.blob);
       clipPreviewUrls.set(clip.id, url);
+      let durationSec = clip.durationSeconds || 0;
+      if (!durationSec) durationSec = await probeBlobDuration(clip.blob);
+      const detailsLine = formatClipDetailsLine(clip, durationSec);
       const card = document.createElement('article');
       card.className = 'camera-clip-card';
       card.setAttribute('role', 'listitem');
-      const ext = clip.mimeType && clip.mimeType.includes('mp4') ? 'mp4' : 'webm';
       card.innerHTML = `
         <input type="checkbox" class="camera-clip-card__check" data-clip-id="${clip.id}" aria-label="Select clip ${clip.id}" />
         <div class="camera-clip-card__thumb">
           <video src="${url}" muted playsinline preload="metadata" aria-hidden="true"></video>
         </div>
         <div class="camera-clip-card__meta">
-          <span class="camera-clip-card__id">${clip.id}.${ext}</span>
-          <span>${formatBytes(clip.size || 0)}</span>
+          <span class="camera-clip-card__id">${clip.id}</span>
+          <span class="camera-clip-card__size">${formatBytes(clip.size || 0)}</span>
         </div>
+        <p class="camera-clip-card__details">${detailsLine}</p>
         <button type="button" class="camera-clip-card__play" data-clip-id="${clip.id}">View</button>`;
 
       const check = card.querySelector('.camera-clip-card__check');
@@ -380,7 +465,7 @@
       });
 
       list.appendChild(card);
-    });
+    }
 
     updateClipsHubActions();
     await refreshClipSummary();
@@ -738,7 +823,19 @@
         return;
       }
       try {
-        await saveClip(blob, mediaRecorder.mimeType || mimeType);
+        const durationSeconds = Math.max(
+          1,
+          Math.round((Date.now() - (recordingStartedAt || Date.now())) / 1000)
+        );
+        await saveClip(blob, mediaRecorder.mimeType || mimeType, {
+          durationSeconds,
+          recordedAt: recordingStartedAt || Date.now(),
+          latitude: recordingGeo?.lat,
+          longitude: recordingGeo?.lng,
+          locationLabel: recordingGeo?.locationLabel || '',
+        });
+        recordingStartedAt = 0;
+        recordingGeo = null;
         showBriefHud('Stopped', 0);
         if (getPrefs().strongHapticOnRecord) haptic('success');
         else haptic('medium');
@@ -749,6 +846,12 @@
         haptic('medium');
       }
     };
+    recordingStartedAt = Date.now();
+    recordingGeo = null;
+    captureRecordingGeo().then((geo) => {
+      if (geo) recordingGeo = geo;
+    });
+
     mediaRecorder.start(1000);
     isRecording = true;
     $('covertCamera')?.classList.add('covert-camera--recording');
