@@ -39,6 +39,8 @@
   let userClosedSession = false;
   const clipPreviewUrls = new Map();
   let clipViewerUrl = null;
+  let orientationWatchHandler = null;
+  let usedFullscreenForOrientation = false;
 
   function $(id) {
     return document.getElementById(id);
@@ -400,6 +402,7 @@
     enterCovertMode();
     hidePreview();
     clearHud();
+    lockLandscape();
   }
 
   function closeCameraSession() {
@@ -412,9 +415,7 @@
     swipeUpCount = 0;
     clearTimeout(swipeUpResetTimer);
     hidePreview();
-    try {
-      screen.orientation?.unlock?.();
-    } catch {}
+    unlockLandscape();
     showClipsHub();
     haptic('light');
   }
@@ -459,6 +460,103 @@
     wakeLockSentinel = null;
   }
 
+  function getLandscapeVideoConstraints() {
+    return {
+      facingMode: { ideal: 'environment' },
+      width: { ideal: 1920, min: 640 },
+      height: { ideal: 1080, min: 360 },
+      aspectRatio: { ideal: 16 / 9 },
+    };
+  }
+
+  async function lockLandscape() {
+    if (!cameraSessionActive) return false;
+    const orient = screen.orientation;
+    const lockTypes = ['landscape-primary', 'landscape', 'landscape-secondary'];
+
+    const tryLock = async () => {
+      if (!orient?.lock) return false;
+      for (const type of lockTypes) {
+        try {
+          await orient.lock(type);
+          return true;
+        } catch {}
+      }
+      return false;
+    };
+
+    if (await tryLock()) {
+      startOrientationWatch();
+      return true;
+    }
+
+    const el = $('covertCamera') || document.documentElement;
+    try {
+      if (!document.fullscreenElement && el.requestFullscreen) {
+        await el.requestFullscreen();
+        usedFullscreenForOrientation = true;
+      }
+    } catch {}
+
+    if (await tryLock()) {
+      startOrientationWatch();
+      return true;
+    }
+    return false;
+  }
+
+  function startOrientationWatch() {
+    if (orientationWatchHandler || !screen.orientation?.addEventListener) return;
+    orientationWatchHandler = () => {
+      if (!cameraSessionActive) return;
+      const type = screen.orientation?.type || '';
+      if (type.startsWith('portrait')) lockLandscape();
+    };
+    screen.orientation.addEventListener('change', orientationWatchHandler);
+  }
+
+  function unlockLandscape() {
+    if (orientationWatchHandler && screen.orientation?.removeEventListener) {
+      screen.orientation.removeEventListener('change', orientationWatchHandler);
+      orientationWatchHandler = null;
+    }
+    try {
+      screen.orientation?.unlock?.();
+    } catch {}
+    if (usedFullscreenForOrientation && document.fullscreenElement) {
+      try {
+        document.exitFullscreen();
+      } catch {}
+    }
+    usedFullscreenForOrientation = false;
+  }
+
+  async function enforceLandscapeVideoTrack(stream) {
+    const track = stream?.getVideoTracks?.()[0];
+    if (!track?.applyConstraints) return;
+    const settings = track.getSettings?.() || {};
+    if (settings.width && settings.height && settings.width >= settings.height) return;
+    const landscape = getLandscapeVideoConstraints();
+    try {
+      await track.applyConstraints(landscape);
+    } catch {
+      try {
+        await track.applyConstraints({
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          aspectRatio: { ideal: 16 / 9 },
+        });
+      } catch {
+        try {
+          await track.applyConstraints({
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          });
+        } catch {}
+      }
+    }
+  }
+
   async function tryAttachMicrophone(stream) {
     if (stream.getAudioTracks().length > 0) return stream;
     try {
@@ -470,20 +568,19 @@
   }
 
   async function tryGetUserMediaCascade() {
-    // Video-only first so Android shows the camera popup (mic+audio together can fail with no prompt).
+    const landscape = getLandscapeVideoConstraints();
+    // Video-only first for Android permission; landscape 16:9 as soon as possible.
     const attempts = [
+      { video: landscape, audio: false },
+      {
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      },
       { video: { facingMode: 'environment' }, audio: false },
       { video: { facingMode: { ideal: 'environment' } }, audio: false },
       { video: true, audio: false },
+      { audio: true, video: landscape },
       { audio: true, video: { facingMode: 'environment' } },
-      {
-        audio: true,
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-      },
       { audio: true, video: true },
     ];
 
@@ -499,7 +596,10 @@
       }
     }
     if (!stream) throw lastErr || new Error('getUserMedia failed');
-    return tryAttachMicrophone(stream);
+    await enforceLandscapeVideoTrack(stream);
+    const withAudio = await tryAttachMicrophone(stream);
+    await enforceLandscapeVideoTrack(withAudio);
+    return withAudio;
   }
 
   function streamIsLive() {
@@ -542,6 +642,8 @@
     setPermissionError('');
     clearHud();
     openCameraSession();
+    await lockLandscape();
+    await enforceLandscapeVideoTrack(mediaStream);
 
     const video = $('covertVideoPreview');
     if (video) {
@@ -573,15 +675,7 @@
     clearHud();
 
     // Start getUserMedia in this same tap (do not await anything before the cascade).
-    return startCameraStream(true)
-      .then((ok) => {
-        if (ok) {
-          try {
-            if (screen.orientation?.lock) screen.orientation.lock('landscape');
-          } catch {}
-        }
-        return ok;
-      })
+    return startCameraStream(true).then((ok) => ok)
       .finally(() => {
         allowInFlight = false;
         if (allowBtn) {
@@ -661,6 +755,8 @@
     setBlackVisible(true);
     hidePreview();
     await acquireWakeLock();
+    await lockLandscape();
+    await enforceLandscapeVideoTrack(mediaStream);
     showBriefHud('Recording', HUD_RECORDING_MS);
     if (getPrefs().strongHapticOnRecord) haptic('success');
     else haptic('medium');
@@ -967,9 +1063,7 @@
     revokeClipPreviewUrls();
     $('covertCamera')?.classList.add('covert-camera--session-off');
     $('covertClipsHub')?.classList.add('hidden');
-    try {
-      screen.orientation?.unlock?.();
-    } catch {}
+    unlockLandscape();
   }
 
   function init() {
