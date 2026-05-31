@@ -1,11 +1,31 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v180",
-  "appVersion": "3.5.49",
+  "latest": "v181",
+  "appVersion": "3.5.50",
   "highlights": [
-    "Camera Clip Library and Settings scroll with the tab like Calculator; each day’s clips sit in a visible folder card."
+    "Clip Library day folders in a 2-column grid; tap a folder to manage clips; spacing matches Settings on the Camera hub."
   ],
   "builds": {
+    "v181": {
+      "intro": "Build v181 — Clip Library day folders grid and drill-down.",
+      "sections": [
+        {
+          "heading": "Clip Library",
+          "items": [
+            "Two folders per row — each day with clips gets a compact tile (preview, date, count, size).",
+            "Tap a folder to open that day’s clips; Back returns to the folder grid.",
+            "Swipe up twice after recording opens the newest clip’s day folder.",
+            "Covert Camera hub section titles spaced like Settings (Clip Library / Camera Settings)."
+          ]
+        },
+        {
+          "heading": "Deploy",
+          "items": [
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v181)."
+          ]
+        }
+      ]
+    },
     "v180": {
       "intro": "Build v180 — Camera subpages scroll with the tab; clip day folders.",
       "sections": [
