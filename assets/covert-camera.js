@@ -355,6 +355,7 @@
     $('covertCamera')?.classList.remove('covert-camera--session-off');
     $('covertClipsHub')?.classList.add('hidden');
     closeClipViewer();
+    document.documentElement.classList.add('toolbox-covert-active');
     document.querySelector('.app-shell')?.classList.add('app-shell--covert-camera');
     setBlackVisible(true);
   }
@@ -369,6 +370,7 @@
   function leaveCovertMode() {
     const tab = $('tab-camera');
     tab?.classList.remove('tab-panel--camera-active');
+    document.documentElement.classList.remove('toolbox-covert-active');
     document.querySelector('.app-shell')?.classList.remove('app-shell--covert-camera');
     document.documentElement.style.backgroundColor = '';
     setBlackVisible(false);
@@ -411,6 +413,26 @@
     viewer?.setAttribute('aria-hidden', 'true');
   }
 
+  function applyClipViewerLayout(video) {
+    if (!video) return;
+    const apply = () => {
+      const w = video.videoWidth || 0;
+      const h = video.videoHeight || 0;
+      video.classList.remove(
+        'camera-clip-viewer__video--landscape',
+        'camera-clip-viewer__video--portrait'
+      );
+      if (!w || !h) return;
+      if (w >= h) {
+        video.classList.add('camera-clip-viewer__video--landscape');
+      } else {
+        video.classList.add('camera-clip-viewer__video--portrait');
+      }
+    };
+    if (video.readyState >= 1) apply();
+    else video.addEventListener('loadedmetadata', apply, { once: true });
+  }
+
   function openClipViewer(clip) {
     const viewer = $('covertClipViewer');
     const video = $('covertClipViewerVideo');
@@ -418,6 +440,7 @@
     closeClipViewer();
     clipViewerUrl = URL.createObjectURL(clip.blob);
     video.src = clipViewerUrl;
+    applyClipViewerLayout(video);
     viewer.classList.remove('hidden');
     viewer.setAttribute('aria-hidden', 'false');
     video.play().catch(() => {});
@@ -456,7 +479,7 @@
       list.innerHTML = `
         <div class="camera-clips-hub__empty">
           <p><strong>No clips yet</strong></p>
-          <p class="card-sub">Open camera to record. Swipe up twice when finished to manage clips here.</p>
+          <p class="card-sub">Open Camera to record. Swipe up twice when finished to manage clips here.</p>
         </div>`;
       updateClipsHubActions();
       await refreshClipSummary();
