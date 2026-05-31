@@ -1,6 +1,6 @@
 /* sw-revision: 27 — bump this comment when testing updates locally */
 const BASE = new URL('./', self.location).pathname;
-let activeCacheName = 'surveillance-travel-pwa-v174';
+let activeCacheName = 'surveillance-travel-pwa-v175';
 
 const CORE_ASSETS = [
   BASE + 'index.html',
@@ -82,10 +82,13 @@ async function closeSwUpdateNotifications() {
 async function showSwUpdateReadyNotification() {
   if (!self.registration?.showNotification) return;
   try {
+    const existing = await self.registration.getNotifications({ tag: UPDATE_NOTIFICATION_TAG });
+    if (existing.length) return;
     await self.registration.showNotification('Toolbox update ready', {
       body: 'Open Toolbox → Settings → Software Update to install.',
       tag: UPDATE_NOTIFICATION_TAG,
-      renotify: true,
+      renotify: false,
+      silent: true,
       icon: BASE + 'assets/icon-192.png',
       badge: BASE + 'assets/icon-192.png',
       data: { screen: 'updates' },
@@ -183,10 +186,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('sync', (event) => {
   if (event.tag === 'toolbox-update-badge') {
-    event.waitUntil((async () => {
-      await syncSwAppBadge(1);
-      await showSwUpdateReadyNotification();
-    })());
+    event.waitUntil(syncSwAppBadge(1));
   }
 });
 
@@ -217,8 +217,7 @@ self.addEventListener('message', (event) => {
     event.waitUntil((async () => {
       const count = Number(data.count) || 0;
       await syncSwAppBadge(count);
-      if (count > 0) await showSwUpdateReadyNotification();
-      else await closeSwUpdateNotifications();
+      if (!count) await closeSwUpdateNotifications();
     })());
   }
   if (data.type === 'CLEAR_UPDATE_NOTIFICATIONS') {

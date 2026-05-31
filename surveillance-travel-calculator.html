@@ -1286,21 +1286,8 @@
     #developerPanel > .settings-group + .settings-group{
       margin-top:var(--space-5);
     }
-    .settings-page-intro__title{
-      display:flex;
-      align-items:center;
-      gap:var(--space-2);
-      flex-wrap:wrap;
-    }
-    .settings-page-intro__badge{
-      width:18px;
-      height:18px;
-      min-width:18px;
-      font-size:0.65rem;
-    }
     .settings-badge,
-    .update-count-badge,
-    .settings-page-intro__badge{
+    .update-count-badge{
       display:grid;
       place-items:center;
       width:20px;
@@ -1947,7 +1934,7 @@
             <div class="settings-page-intro__inner">
               <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
               <div class="settings-page-intro__text">
-                <h1 class="settings-page-intro__title" id="updates-intro-title">Software Update<span class="settings-page-intro__badge update-count-badge hidden" id="updatesScreenBadge" aria-hidden="true">1</span></h1>
+                <h1 class="settings-page-intro__title" id="updates-intro-title">Software Update</h1>
                 <p class="settings-page-intro__blurb">Check for the latest Toolbox build and install it when you are ready.</p>
               </div>
             </div>
@@ -2421,7 +2408,7 @@
   </div>
 </div>
 
-<script src="assets/covert-camera.js?v=174" onerror="window.__covertCameraLoadFailed=true"></script>
+<script src="assets/covert-camera.js?v=175" onerror="window.__covertCameraLoadFailed=true"></script>
 <script>
 (() => {
   const doc = document;
@@ -2443,8 +2430,8 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   /** Keep in sync each deploy: release-notes.json appVersion + latest, and service-worker.js activeCacheName. */
-  const BUNDLED_APP_VERSION = '3.5.43';
-  const BUNDLED_PWA_CACHE_VERSION = 'v174';
+  const BUNDLED_APP_VERSION = '3.5.44';
+  const BUNDLED_PWA_CACHE_VERSION = 'v175';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -2476,7 +2463,6 @@
 
   const openSettingsBtn = $('openSettingsBtn');
   const menuUpdateBadge = $('menuUpdateBadge');
-  const updatesScreenBadge = $('updatesScreenBadge');
   const settingsOverlay = $('settingsOverlay');
   const settingsStack = $('settingsStack');
   const settingsBackBtn = $('settingsBackBtn');
@@ -2973,7 +2959,7 @@
       } else if ('Notification' in window && Notification.permission === 'default') {
         await Notification.requestPermission();
       } else if (enabled && isUpdateMenuBadgeActive()) {
-        void syncAppIconBadge(true);
+        void syncLauncherUpdateBadgeOnce();
       }
       await refreshPermissionSettingsUi();
     });
@@ -2995,6 +2981,7 @@
   function markUpdateReadyForBanner() {
     try { sessionStorage.setItem('toolboxUpdateReady', '1'); } catch {}
     refreshSettingsUpdateBadge();
+    void syncLauncherUpdateBadgeOnce();
   }
 
   function shouldAutoPromptUpdate() {
@@ -3005,6 +2992,7 @@
     try {
       sessionStorage.removeItem('toolboxUpdateReady');
       sessionStorage.removeItem('toolboxUpdateNotificationShown');
+      sessionStorage.removeItem('toolboxLauncherBadgeBuild');
       for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
         const key = sessionStorage.key(i);
         if (key && key.startsWith('toolboxUpdateNotificationShown_')) sessionStorage.removeItem(key);
@@ -3054,19 +3042,35 @@
     } catch {}
   }
 
+  async function hasUpdateReadyNotification() {
+    if (!('serviceWorker' in navigator)) return false;
+    try {
+      const reg = await navigator.serviceWorker.getRegistration(BASE_PATH);
+      const notes = await reg?.getNotifications?.({ tag: UPDATE_NOTIFICATION_TAG }) || [];
+      return notes.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
   async function showUpdateReadyNotification() {
     if (!isNotificationsEnabledInApp()) return false;
     const shownKey = getUpdateNotificationShownKey();
     try {
       if (sessionStorage.getItem(shownKey) === '1') return false;
     } catch {}
+    if (await hasUpdateReadyNotification()) {
+      try { sessionStorage.setItem(shownKey, '1'); } catch {}
+      return false;
+    }
     if (!('Notification' in window) || Notification.permission !== 'granted') return false;
     try {
       const reg = await navigator.serviceWorker.ready;
       await reg.showNotification('Toolbox update ready', {
         body: 'Open Toolbox → Settings → Software Update to install.',
         tag: UPDATE_NOTIFICATION_TAG,
-        renotify: true,
+        renotify: false,
+        silent: true,
         icon: `${BASE_PATH}assets/icon-192.png`,
         badge: `${BASE_PATH}assets/icon-192.png`,
         data: { screen: 'updates', build: pendingUpdateBuild || resolveTargetBuild() },
@@ -3479,7 +3483,7 @@
     if (waitingSW || isUpdateReadyInSession()) return true;
     if (updateUIState === 'installing' || updateUIState === 'uptodate') return false;
     if (updateUIState === 'ready' || updateUIState === 'downloading') return true;
-    if (updateUIState === 'checking') return true;
+    if (updateUIState === 'checking' && (waitingSW || isUpdateReadyInSession())) return true;
     return false;
   }
 
@@ -3501,14 +3505,6 @@
         seen.add(worker);
         worker.postMessage({ type: 'SET_APP_BADGE', count });
       });
-    } catch {}
-  }
-
-  async function registerUpdateBadgeBackgroundSync() {
-    if (!isUpdateMenuBadgeActive()) return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      if (reg && 'sync' in reg) await reg.sync.register('toolbox-update-badge');
     } catch {}
   }
 
@@ -3562,28 +3558,26 @@
     }
 
     recordBadgeAttempt(result);
-    await registerUpdateBadgeBackgroundSync();
     return result;
   }
 
-  let appIconBadgeRefreshTimer = null;
-
-  function stopAppIconBadgeRefresh() {
-    if (appIconBadgeRefreshTimer) {
-      clearInterval(appIconBadgeRefreshTimer);
-      appIconBadgeRefreshTimer = null;
+  async function syncLauncherUpdateBadgeOnce() {
+    if (!isUpdateMenuBadgeActive()) {
+      await syncAppIconBadge(false);
+      return;
     }
-  }
-
-  function startAppIconBadgeRefresh() {
-    stopAppIconBadgeRefresh();
-    appIconBadgeRefreshTimer = setInterval(() => {
-      if (!isUpdateMenuBadgeActive()) {
-        stopAppIconBadgeRefresh();
+    const build = String(pendingUpdateBuild || resolveTargetBuild() || '').trim();
+    try {
+      if (sessionStorage.getItem('toolboxLauncherBadgeBuild') === build) {
+        if (typeof navigator.setAppBadge === 'function') {
+          try { await navigator.setAppBadge(1); } catch {}
+        }
+        await postBadgeToServiceWorkers(1);
         return;
       }
-      void syncAppIconBadge(true);
-    }, 90000);
+      sessionStorage.setItem('toolboxLauncherBadgeBuild', build);
+    } catch {}
+    await syncAppIconBadge(true);
   }
 
   function refreshSettingsUpdateBadge() {
@@ -3604,13 +3598,6 @@
       settingsUpdateBadge.setAttribute('aria-hidden', pending ? 'false' : 'true');
       settingsUpdateBadge.setAttribute('aria-label', pending ? '1 update available' : '');
     }
-    if (updatesScreenBadge) {
-      updatesScreenBadge.classList.toggle('hidden', !pending);
-      updatesScreenBadge.setAttribute('aria-hidden', pending ? 'false' : 'true');
-    }
-    void syncAppIconBadge(pending);
-    if (pending) startAppIconBadgeRefresh();
-    else stopAppIconBadgeRefresh();
   }
 
   function refreshSettingsVersionLabel() {
@@ -3836,9 +3823,12 @@
       const pending = Number(data.count) > 0;
       if (pending) {
         try { sessionStorage.setItem('toolboxUpdateReady', '1'); } catch {}
+        refreshSettingsUpdateBadge();
+        void syncLauncherUpdateBadgeOnce();
+      } else {
+        clearUpdateReadyMark();
+        refreshSettingsUpdateBadge();
       }
-      void syncAppIconBadge(pending);
-      refreshSettingsUpdateBadge();
       return;
     }
     if (applyingAppUpdate || quietUpdateLoad) return;
@@ -3848,9 +3838,7 @@
     }
     if (data.type === 'UPDATE_READY') {
       markUpdateReadyForBanner();
-      void syncAppIconBadge(true);
       finishDownloadAndShowReady(data.version);
-      refreshSettingsUpdateBadge();
     }
   }
 
@@ -3864,8 +3852,6 @@
       sw.addEventListener('statechange', () => {
         if (sw.state === 'installed' && navigator.serviceWorker.controller) {
           markUpdateReadyForBanner();
-          void syncAppIconBadge(true);
-          refreshSettingsUpdateBadge();
         }
       });
       if (applyingAppUpdate || quietUpdateLoad) return;
@@ -5567,6 +5553,7 @@ $('summaryNote').textContent =
       .catch(() => {})
       .finally(() => {
         refreshSettingsUpdateBadge();
+        if (isUpdateMenuBadgeActive()) void syncLauncherUpdateBadgeOnce();
       });
 
     document.addEventListener('visibilitychange', () => {
@@ -5575,7 +5562,6 @@ $('summaryNote').textContent =
       if (isUpdateBusy()) return;
       checkForAppUpdate({ showCheckingUi: false }).then(async (status) => {
         if (status === 'available') await bindWaitingWorker(swRegistration);
-        else refreshSettingsUpdateBadge();
       });
     });
     setInterval(() => {

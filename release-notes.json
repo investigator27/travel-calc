@@ -1,11 +1,25 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v174",
-  "appVersion": "3.5.43",
+  "latest": "v175",
+  "appVersion": "3.5.44",
   "highlights": [
-    "Fix update check falsely showing up to date when a newer build was downloaded but not installed; red badges return with Update Now."
+    "Update badges only on menu and Settings Software Update row; notification sound plays once per build, not on every tab or unlock."
   ],
   "builds": {
+    "v175": {
+      "intro": "Build v175 — badge placement and notification sound fix.",
+      "sections": [
+        {
+          "heading": "Fixes",
+          "items": [
+            "Removed red badge from Software Update page title; badges stay on menu and Settings list row only.",
+            "Stopped re-playing notification sound when switching tabs, opening Settings, or unlocking the phone.",
+            "Launcher/home icon dot uses one silent notification per build.",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v175)."
+          ]
+        }
+      ]
+    },
     "v174": {
       "intro": "Build v174 — fix false up-to-date and restore update badges.",
       "sections": [
