@@ -1,11 +1,25 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v182",
-  "appVersion": "3.5.51",
+  "latest": "v183",
+  "appVersion": "3.5.52",
   "highlights": [
-    "Clip Library and Camera Settings on the Camera tab use the same intro cards, section titles, and spacing as Settings."
+    "Clip Library uses Covert Camera hub layout with per-day nav rows; Camera Settings matches between Camera tab and Toolbox Settings."
   ],
   "builds": {
+    "v183": {
+      "intro": "Build v183 — Clip Library hub-style days; unified Camera Settings.",
+      "sections": [
+        {
+          "heading": "UI",
+          "items": [
+            "Clip Library is a hub card like Covert Camera; each day is a section with a nav row (date, clip count, chevron).",
+            "Day detail uses the same hub blocks for Selection, Clips, and Actions.",
+            "Toolbox Settings → Camera Settings matches the Camera tab (sections, copy, controls).",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v183)."
+          ]
+        }
+      ]
+    },
     "v182": {
       "intro": "Build v182 — Camera subpages match Settings layout and spacing.",
       "sections": [
