@@ -197,7 +197,6 @@
     .app-shell--covert-camera{background:#000}
     .app-shell--covert-camera .app-header{display:none}
     .app-shell--covert-camera .app-content{padding:0;overflow:hidden}
-    .app-shell--covert-camera .tab-bar{display:none!important}
     #tab-camera{
       position:relative;
       margin:0;
@@ -211,9 +210,8 @@
       top:0;
       left:0;
       right:0;
-      bottom:0;
-      padding-bottom:env(safe-area-inset-bottom,0px);
-      z-index:350;
+      bottom:calc(4.5rem + env(safe-area-inset-bottom,0px));
+      z-index:300;
       background:#000;
     }
     #tab-camera.hidden{display:none!important}
@@ -434,7 +432,8 @@
     .covert-camera__hud:empty{display:none}
     .tab-bar{
       grid-row:3;
-      z-index:200;
+      position:relative;
+      z-index:600;
       flex-shrink:0;
       display:grid;
       grid-template-columns:repeat(4,minmax(0,1fr));
@@ -2231,7 +2230,7 @@
   </div>
 </div>
 
-<script src="assets/covert-camera.js?v=157" onerror="window.__covertCameraLoadFailed=true"></script>
+<script src="assets/covert-camera.js?v=158" onerror="window.__covertCameraLoadFailed=true"></script>
 <script>
 (() => {
   const doc = document;
@@ -2253,8 +2252,8 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   /** Keep in sync each deploy: release-notes.json appVersion + latest, and service-worker.js activeCacheName. */
-  const BUNDLED_APP_VERSION = '3.5.26';
-  const BUNDLED_PWA_CACHE_VERSION = 'v157';
+  const BUNDLED_APP_VERSION = '3.5.27';
+  const BUNDLED_PWA_CACHE_VERSION = 'v158';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -2867,8 +2866,6 @@
   async function bootstrapToolboxShell() {
     if (shellBootstrapDone) return;
     shellBootstrapDone = true;
-    resetStuckCovertOverlay();
-    if (!tabBarInitialized) initTabBar();
     try {
       await syncBuildLabelFromReleaseNotes();
     } catch {}
@@ -4151,7 +4148,6 @@
     remoteTabPolicyMap = parsed.map;
     try { localStorage.setItem(TAB_VISIBILITY_KEY, JSON.stringify(parsed.map)); } catch {}
     window.ToolboxTabs?.applyVisibility?.(parsed.map);
-    window.dispatchEvent(new CustomEvent('toolbox-tab-visibility', { detail: parsed.map }));
     return true;
   }
 
@@ -4958,35 +4954,13 @@ $('summaryNote').textContent =
     showInstallCompleteUi();
   });
 
-  function bindTabBarNavigation(nav, switchTabFn, isTabEnabledFn) {
-    if (!nav || nav.dataset.tabsBound === '1') return;
-    nav.dataset.tabsBound = '1';
-    nav.addEventListener('click', (event) => {
-      const btn = event.target.closest('.tab-bar-item');
-      if (!btn || !nav.contains(btn)) return;
-      if (btn.classList.contains('tab-bar-item--disabled')) {
-        event.preventDefault();
-        return;
-      }
-      const tabId = btn.dataset.tab;
-      if (tabId) switchTabFn(tabId);
-    });
-    nav.addEventListener('pointerdown', (event) => {
-      const btn = event.target.closest('.tab-bar-item--disabled');
-      if (btn && nav.contains(btn)) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    }, { capture: true });
-  }
-
   function initTabBar() {
     if (tabBarInitialized) return;
     tabBarInitialized = true;
+    resetStuckCovertOverlay();
     tabVisibilityState = loadTabVisibility();
     const tabPanels = qsa('.tab-panel');
     const tabButtons = qsa('.tab-bar-item');
-    const tabNav = qs('nav.tab-bar');
     const appContent = $('appContent');
 
     function isTabEnabled(tabId) {
@@ -4994,15 +4968,19 @@ $('summaryNote').textContent =
       return tabVisibilityState[tabId] !== false;
     }
 
-    function applyTabBarState() {
-      const activeTabId = qs('.tab-bar-item.active')?.dataset.tab || 'calculator';
+    function syncPanelVisibility(activeTabId) {
       tabPanels.forEach((panel) => {
         const tabId = panel.dataset.tab;
         if (!tabId) return;
-        const enabled = isTabEnabled(tabId);
-        const isActive = tabId === activeTabId;
-        panel.classList.toggle('hidden', !enabled || !isActive);
+        if (!isTabEnabled(tabId)) {
+          panel.classList.add('hidden');
+          return;
+        }
+        panel.classList.toggle('hidden', tabId !== activeTabId);
       });
+    }
+
+    function applyTabButtonState() {
       tabButtons.forEach((btn) => {
         const tabId = btn.dataset.tab;
         if (!tabId || tabId === 'calculator') {
@@ -5025,27 +5003,23 @@ $('summaryNote').textContent =
       });
     }
 
-    function switchTab(tabId) {
-      if (!isTabEnabled(tabId)) return;
+    function switchTab(tabId, opts) {
+      if (!tabId || !isTabEnabled(tabId)) return;
       const prev = qs('.tab-bar-item.active')?.dataset.tab;
-      if (prev === 'camera' && tabId !== 'camera') {
-        window.ToolboxCovertCamera?.onTabLeave?.();
-      }
+      if (prev === tabId && !opts?.force) return;
+      if (prev === 'camera') window.ToolboxCovertCamera?.onTabLeave?.();
       if (tabId !== 'camera') {
         document.querySelector('.app-shell')?.classList.remove('app-shell--covert-camera');
         $('tab-camera')?.classList.remove('tab-panel--camera-active');
       }
       rememberLastTab(tabId);
       toolboxHaptic('light');
-      tabPanels.forEach((panel) => {
-        const isActive = panel.dataset.tab === tabId;
-        panel.classList.toggle('hidden', !isActive);
-      });
       tabButtons.forEach((btn) => {
         const isActive = btn.dataset.tab === tabId;
         btn.classList.toggle('active', isActive);
         btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
+      syncPanelVisibility(tabId);
       if (appContent) appContent.scrollTop = 0;
       const cityDrop = $('cityDropdown');
       if (cityDrop) cityDrop.hidden = true;
@@ -5054,14 +5028,19 @@ $('summaryNote').textContent =
       if (tabId === 'camera') window.ToolboxCovertCamera?.onTabEnter?.();
     }
 
+    function applyTabPolicy(map) {
+      tabVisibilityState = { ...getDefaultTabVisibility(), ...map };
+      applyTabButtonState();
+      const activeId = qs('.tab-bar-item.active')?.dataset.tab;
+      if (activeId && isTabEnabled(activeId)) {
+        syncPanelVisibility(activeId);
+      } else {
+        switchTab('calculator');
+      }
+    }
+
     window.ToolboxTabs = {
-      applyVisibility(map) {
-        tabVisibilityState = { ...getDefaultTabVisibility(), ...map };
-        applyTabBarState();
-        const active = qs('.tab-bar-item.active');
-        const activeId = active?.dataset.tab;
-        if (activeId && !isTabEnabled(activeId)) switchTab('calculator');
-      },
+      applyVisibility: applyTabPolicy,
       getVisibility() {
         return { ...tabVisibilityState };
       },
@@ -5069,30 +5048,34 @@ $('summaryNote').textContent =
       switchTab,
     };
 
-    bindTabBarNavigation(tabNav, switchTab, isTabEnabled);
+    if (!window.__toolboxTabClicksBound) {
+      window.__toolboxTabClicksBound = true;
+      document.addEventListener('click', (event) => {
+        const btn = event.target.closest('nav.tab-bar .tab-bar-item');
+        if (!btn) return;
+        if (btn.classList.contains('tab-bar-item--disabled')) return;
+        const tabId = btn.dataset.tab;
+        if (tabId) switchTab(tabId);
+      });
+    }
 
     window.addEventListener('pageshow', () => {
       resetStuckCovertOverlay();
       tabVisibilityState = loadTabVisibility();
-      applyTabBarState();
-      const active = qs('.tab-bar-item.active');
-      const activeId = active?.dataset.tab;
-      if (activeId && !isTabEnabled(activeId)) switchTab('calculator');
+      applyTabButtonState();
+      const activeId = qs('.tab-bar-item.active')?.dataset.tab;
+      if (!activeId || !isTabEnabled(activeId)) switchTab('calculator');
+      else syncPanelVisibility(activeId);
     });
 
     window.addEventListener('toolbox-tab-visibility', (event) => {
-      const map = event.detail || loadTabVisibility();
-      tabVisibilityState = { ...getDefaultTabVisibility(), ...map };
-      applyTabBarState();
-      const active = qs('.tab-bar-item.active');
-      const activeId = active?.dataset.tab;
-      if (activeId && !isTabEnabled(activeId)) switchTab('calculator');
+      applyTabPolicy(event.detail || loadTabVisibility());
     });
 
-    applyTabBarState();
+    applyTabButtonState();
     let initialTab = resolveInitialTabId();
     if (!isTabEnabled(initialTab)) initialTab = 'calculator';
-    switchTab(initialTab);
+    switchTab(initialTab, { force: true });
   }
 
   window.toolboxHaptic = toolboxHaptic;
@@ -5100,6 +5083,7 @@ $('summaryNote').textContent =
   window.syncToggleStateLabel = syncToggleStateLabel;
   window.openSettings = openSettings;
 
+  initTabBar();
   void bootstrapToolboxShell();
   bindViewportHeightSync();
   document.addEventListener('visibilitychange', () => {
@@ -5124,18 +5108,13 @@ $('summaryNote').textContent =
       }
       if (sessionStorage.getItem('toolboxJustUpdated') === '1') {
         sessionStorage.removeItem('toolboxJustUpdated');
+        sessionStorage.removeItem('toolboxOpenSettingsUpdates');
         sessionStorage.removeItem('toolboxReloadBuild');
         sessionStorage.removeItem('toolboxShowUptodate');
         suppressUpdatePromptOnLoad = true;
         waitingSW = null;
         applyingAppUpdate = false;
         showUptodateBanner();
-        if (sessionStorage.getItem('toolboxOpenSettingsUpdates') === '1') {
-          sessionStorage.removeItem('toolboxOpenSettingsUpdates');
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => openSettings('updates'));
-          });
-        }
       } else if (sessionStorage.getItem('toolboxShowUptodate') === '1') {
         sessionStorage.removeItem('toolboxShowUptodate');
         suppressUpdatePromptOnLoad = true;

@@ -1,11 +1,26 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v157",
-  "appVersion": "3.5.26",
+  "latest": "v158",
+  "appVersion": "3.5.27",
   "highlights": [
-    "Fix camera vs tab bar conflict; restore update badges and post-install flow."
+    "Fix tab bar taps and tab-policy locks (tabs first)."
   ],
   "builds": {
+    "v158": {
+      "intro": "Build v158 — tab bar fix.",
+      "sections": [
+        {
+          "heading": "Fixes",
+          "items": [
+            "Tab bar sits above camera overlay (z-index) so taps always register.",
+            "Tab policy only greys out buttons; panel switching uses one code path.",
+            "Document-level click handler on the tab bar (reliable on mobile).",
+            "Camera tab opens Saved clips until you tap Open camera.",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v158)."
+          ]
+        }
+      ]
+    },
     "v157": {
       "intro": "Build v157 — camera/tab/update conflicts fixed.",
       "sections": [

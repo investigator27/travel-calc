@@ -1,6 +1,6 @@
 /* sw-revision: 27 — bump this comment when testing updates locally */
 const BASE = new URL('./', self.location).pathname;
-let activeCacheName = 'surveillance-travel-pwa-v157';
+let activeCacheName = 'surveillance-travel-pwa-v158';
 
 const CORE_ASSETS = [
   BASE + 'index.html',
