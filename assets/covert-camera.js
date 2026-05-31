@@ -213,6 +213,28 @@
     });
   }
 
+  function formatClipDayShort(timestamp) {
+    const d = new Date(timestamp || Date.now());
+    return d.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  function getActiveCameraScreenId() {
+    return cameraNavStack[cameraNavStack.length - 1] || 'root';
+  }
+
+  function isClipLibraryScreen(screenId) {
+    return screenId === 'clip-library' || (typeof screenId === 'string' && screenId.startsWith('clip-day:'));
+  }
+
+  function getClipDayKeyFromScreen(screenId) {
+    if (!screenId || !String(screenId).startsWith('clip-day:')) return null;
+    return String(screenId).slice('clip-day:'.length);
+  }
+
   let cameraNavStack = ['root'];
 
   function scrollCameraTabToTop() {
@@ -225,9 +247,32 @@
     }
   }
 
+  function updateClipLibraryBackLabel() {
+    const btn = $('clipLibraryBackBtn');
+    if (!btn) return;
+    const activeId = getActiveCameraScreenId();
+    const inDay = activeId.startsWith('clip-day:');
+    btn.setAttribute('aria-label', inDay ? 'Back to day folders' : 'Back to Covert Camera');
+  }
+
+  function setClipLibrarySubview(mode) {
+    const folders = $('covertClipsLibraryFolders');
+    const dayView = $('covertClipsDayView');
+    const inDay = mode === 'day';
+    folders?.classList.toggle('hidden', inDay);
+    if (folders) folders.setAttribute('aria-hidden', inDay ? 'true' : 'false');
+    dayView?.classList.toggle('hidden', !inDay);
+    if (dayView) {
+      dayView.setAttribute('aria-hidden', inDay ? 'false' : 'true');
+      if (inDay) dayView.removeAttribute('hidden');
+      else dayView.setAttribute('hidden', '');
+    }
+    updateClipLibraryBackLabel();
+  }
+
   function paintCameraScreens() {
     const hub = $('covertClipsHub');
-    const activeId = cameraNavStack[cameraNavStack.length - 1] || 'root';
+    const activeId = getActiveCameraScreenId();
     const isRoot = activeId === 'root';
     const sessionOpen = cameraSessionActive && !$('covertCamera')?.classList.contains('covert-camera--session-off');
 
@@ -239,7 +284,10 @@
 
     document.querySelectorAll('[data-camera-panel]').forEach((panel) => {
       const id = panel.dataset.cameraPanel || '';
-      const open = !isRoot && id === activeId && !sessionOpen;
+      const open =
+        !isRoot &&
+        !sessionOpen &&
+        (id === activeId || (id === 'clip-library' && isClipLibraryScreen(activeId)));
       panel.classList.toggle('hidden', !open);
       if (open) {
         panel.removeAttribute('hidden');
@@ -250,22 +298,39 @@
       }
     });
 
-    if (activeId === 'clip-library') void renderClipsLibrary();
+    if (isClipLibraryScreen(activeId)) {
+      setClipLibrarySubview(getClipDayKeyFromScreen(activeId) ? 'day' : 'folders');
+      void renderClipsLibrary();
+    }
     if (activeId === 'camera-settings') void refreshCameraSettingsUi();
   }
 
   function pushCameraScreen(screenId) {
     if (!screenId || screenId === 'root') return;
-    const top = cameraNavStack[cameraNavStack.length - 1];
+    const top = getActiveCameraScreenId();
     if (top === screenId) return;
-    cameraNavStack.push(screenId);
+    if (screenId === 'clip-library') {
+      cameraNavStack = ['root', 'clip-library'];
+    } else {
+      cameraNavStack.push(screenId);
+    }
     paintCameraScreens();
     scrollCameraTabToTop();
   }
 
   function popCameraScreen() {
     if (cameraNavStack.length <= 1) return;
-    cameraNavStack.pop();
+    const top = getActiveCameraScreenId();
+    if (top.startsWith('clip-day:')) {
+      while (cameraNavStack.length > 1 && getActiveCameraScreenId().startsWith('clip-day:')) {
+        cameraNavStack.pop();
+      }
+      if (getActiveCameraScreenId() !== 'clip-library') {
+        cameraNavStack.push('clip-library');
+      }
+    } else {
+      cameraNavStack.pop();
+    }
     paintCameraScreens();
     scrollCameraTabToTop();
   }
@@ -281,6 +346,15 @@
     window.__cameraNavBound = true;
 
     $('cameraTabView')?.addEventListener('click', (event) => {
+      const dayFolderBtn = event.target.closest('[data-camera-push-day]');
+      if (dayFolderBtn) {
+        const dayKey = dayFolderBtn.dataset.cameraPushDay || '';
+        if (dayKey) {
+          pushCameraScreen(`clip-day:${dayKey}`);
+          haptic('light');
+        }
+        return;
+      }
       const pushBtn = event.target.closest('[data-camera-push]');
       if (pushBtn) {
         pushCameraScreen(pushBtn.dataset.cameraPush || '');
@@ -588,36 +662,7 @@
     }
   }
 
-  async function renderClipsLibrary() {
-    const list = $('covertClipsList');
-    const summary = $('covertClipsSummary');
-    if (!list) return;
-
-    revokeClipPreviewUrls();
-    const clips = await getAllClips();
-    if (summary) {
-      summary.textContent = `${clips.length} clip${clips.length === 1 ? '' : 's'} · ${formatBytes(
-        clips.reduce((n, c) => n + (c.size || 0), 0)
-      )}`;
-    }
-
-    if (!clips.length) {
-      list.innerHTML = `
-        <section class="camera-clips-day" aria-label="No clips">
-          <div class="settings-group camera-clips-day__folder">
-            <div class="camera-clips-day__folder-body">
-              <div class="camera-clips-card__empty">
-                <p><strong>No clips yet</strong></p>
-                <p class="card-sub">Tap Covert Camera to record. Swipe up twice when finished to return here.</p>
-              </div>
-            </div>
-          </div>
-        </section>`;
-      updateClipsHubActions();
-      await refreshClipSummary();
-      return;
-    }
-
+  function groupClipsByDay(clips) {
     const sorted = [...clips].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const dayGroups = new Map();
     for (const clip of sorted) {
@@ -625,55 +670,26 @@
       if (!dayGroups.has(key)) dayGroups.set(key, []);
       dayGroups.get(key).push(clip);
     }
+    return dayGroups;
+  }
 
-    list.innerHTML = '';
-    for (const [, dayClips] of dayGroups) {
-      const heading = formatClipDayHeading(dayClips[0]?.createdAt);
-      const dayKey = getClipDayKey(dayClips[0]?.createdAt);
-      const clipCount = dayClips.length;
-      const section = document.createElement('section');
-      section.className = 'camera-clips-day';
-      section.setAttribute('role', 'group');
-      section.setAttribute('aria-labelledby', `clip-day-${dayKey}`);
-
-      const folder = document.createElement('div');
-      folder.className = 'settings-group camera-clips-day__folder';
-
-      const folderHead = document.createElement('div');
-      folderHead.className = 'settings-row settings-row--static camera-clips-day__folder-head';
-      folderHead.id = `clip-day-${dayKey}`;
-      folderHead.innerHTML = `
-        <span class="settings-row__label">${heading}</span>
-        <span class="settings-row__meta">${clipCount} clip${clipCount === 1 ? '' : 's'}</span>`;
-      folder.appendChild(folderHead);
-
-      const folderBody = document.createElement('div');
-      folderBody.className = 'camera-clips-day__folder-body';
-
-      const grid = document.createElement('div');
-      grid.className = 'camera-clips-day__grid';
-      grid.setAttribute('role', 'list');
-      folderBody.appendChild(grid);
-      folder.appendChild(folderBody);
-      section.appendChild(folder);
-
-      for (const clip of dayClips) {
-        const url = URL.createObjectURL(clip.blob);
-        clipPreviewUrls.set(clip.id, url);
-        let durationSec = clip.durationSeconds || 0;
-        if (!durationSec) durationSec = await probeBlobDuration(clip.blob);
-        if (
-          Number.isFinite(clip.latitude) &&
-          (!clip.locationLabel || String(clip.locationLabel).includes('°'))
-        ) {
-          const addr = await resolveClipAddress(clip.latitude, clip.longitude);
-          if (addr) clip.locationLabel = addr;
-        }
-        const detailsLine = formatClipDetailsLine(clip, durationSec);
-        const card = document.createElement('article');
-        card.className = 'camera-clip-card';
-        card.setAttribute('role', 'listitem');
-        card.innerHTML = `
+  async function buildClipCard(clip) {
+    const url = URL.createObjectURL(clip.blob);
+    clipPreviewUrls.set(clip.id, url);
+    let durationSec = clip.durationSeconds || 0;
+    if (!durationSec) durationSec = await probeBlobDuration(clip.blob);
+    if (
+      Number.isFinite(clip.latitude) &&
+      (!clip.locationLabel || String(clip.locationLabel).includes('°'))
+    ) {
+      const addr = await resolveClipAddress(clip.latitude, clip.longitude);
+      if (addr) clip.locationLabel = addr;
+    }
+    const detailsLine = formatClipDetailsLine(clip, durationSec);
+    const card = document.createElement('article');
+    card.className = 'camera-clip-card';
+    card.setAttribute('role', 'listitem');
+    card.innerHTML = `
         <input type="checkbox" class="camera-clip-card__check" data-clip-id="${clip.id}" aria-label="Select clip ${clip.id}" />
         <div class="camera-clip-card__thumb">
           <video src="${url}" muted playsinline preload="metadata" aria-hidden="true"></video>
@@ -685,38 +701,141 @@
         <p class="camera-clip-card__sub">${detailsLine}</p>
         <button type="button" class="camera-clip-card__play" data-clip-id="${clip.id}">View</button>`;
 
-        const check = card.querySelector('.camera-clip-card__check');
-        check?.addEventListener('change', () => updateClipsHubActions());
+    const check = card.querySelector('.camera-clip-card__check');
+    check?.addEventListener('change', () => updateClipsHubActions());
 
-        card.querySelector('.camera-clip-card__play')?.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          openClipViewer(clip);
-        });
+    card.querySelector('.camera-clip-card__play')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openClipViewer(clip);
+    });
 
-        card.addEventListener('click', (e) => {
-          if (e.target.closest('.camera-clip-card__play') || e.target.closest('.camera-clip-card__check')) return;
-          if (check) {
-            check.checked = !check.checked;
-            updateClipsHubActions();
-          }
-        });
-
-        grid.appendChild(card);
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.camera-clip-card__play') || e.target.closest('.camera-clip-card__check')) return;
+      if (check) {
+        check.checked = !check.checked;
+        updateClipsHubActions();
       }
+    });
 
-      list.appendChild(section);
+    return card;
+  }
+
+  async function renderClipFolderGrid(clips) {
+    const grid = $('covertClipsFolderGrid');
+    const summary = $('covertClipsSummary');
+    if (!grid) return;
+
+    if (summary) {
+      summary.textContent = `${clips.length} clip${clips.length === 1 ? '' : 's'} · ${formatBytes(
+        clips.reduce((n, c) => n + (c.size || 0), 0)
+      )}`;
     }
 
+    if (!clips.length) {
+      grid.innerHTML = `
+        <div class="camera-clips-card__empty" style="grid-column:1/-1">
+          <p><strong>No clips yet</strong></p>
+          <p class="card-sub">Tap Covert Camera to record. Swipe up twice when finished to open today’s folder.</p>
+        </div>`;
+      return;
+    }
+
+    const dayGroups = groupClipsByDay(clips);
+    grid.innerHTML = '';
+
+    for (const [dayKey, dayClips] of dayGroups) {
+      const newest = dayClips[0];
+      const thumbUrl = URL.createObjectURL(newest.blob);
+      clipPreviewUrls.set(`folder-${dayKey}`, thumbUrl);
+      const dayBytes = dayClips.reduce((n, c) => n + (c.size || 0), 0);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'camera-day-folder';
+      btn.dataset.cameraPushDay = dayKey;
+      btn.setAttribute('role', 'listitem');
+      btn.setAttribute(
+        'aria-label',
+        `${formatClipDayHeading(newest.createdAt)}, ${dayClips.length} clip${dayClips.length === 1 ? '' : 's'}, ${formatBytes(dayBytes)}`
+      );
+      btn.innerHTML = `
+        <span class="camera-day-folder__thumb">
+          <video src="${thumbUrl}" muted playsinline preload="metadata" aria-hidden="true"></video>
+        </span>
+        <span class="camera-day-folder__date">${formatClipDayShort(newest.createdAt)}</span>
+        <span class="camera-day-folder__meta">${dayClips.length} clip${dayClips.length === 1 ? '' : 's'} · ${formatBytes(dayBytes)}</span>`;
+      grid.appendChild(btn);
+    }
+  }
+
+  async function renderClipDayView(dayKey) {
+    const list = $('covertClipsList');
+    const titleEl = $('covertClipsDayTitle');
+    const daySummary = $('covertClipsDaySummary');
+    if (!list || !dayKey) return;
+
+    const clips = await getAllClips();
+    const dayClips = clips
+      .filter((c) => getClipDayKey(c.createdAt) === dayKey)
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    if (titleEl) {
+      titleEl.textContent = dayClips[0]
+        ? formatClipDayHeading(dayClips[0].createdAt)
+        : formatClipDayHeading(Date.parse(`${dayKey}T12:00:00`));
+    }
+    if (daySummary) {
+      daySummary.textContent = `${dayClips.length} clip${dayClips.length === 1 ? '' : 's'} · ${formatBytes(
+        dayClips.reduce((n, c) => n + (c.size || 0), 0)
+      )}`;
+    }
+
+    list.innerHTML = '';
+    if (!dayClips.length) {
+      list.innerHTML = `
+        <div class="camera-clips-card__empty" style="grid-column:1/-1">
+          <p><strong>No clips for this day</strong></p>
+          <p class="card-sub">This folder is empty. Go back to choose another day.</p>
+        </div>`;
+      updateClipsHubActions();
+      return;
+    }
+
+    for (const clip of dayClips) {
+      list.appendChild(await buildClipCard(clip));
+    }
     updateClipsHubActions();
+  }
+
+  async function renderClipsLibrary() {
+    const activeId = getActiveCameraScreenId();
+    const dayKey = getClipDayKeyFromScreen(activeId);
+
+    revokeClipPreviewUrls();
+    const clips = await getAllClips();
+
+    if (dayKey) {
+      await renderClipDayView(dayKey);
+    } else {
+      await renderClipFolderGrid(clips);
+      updateClipsHubActions();
+    }
+
     await refreshClipSummary();
   }
 
-  function showClipsHub() {
+  function navigateToClipLibrary(openDayKey) {
     cameraSessionActive = false;
     leaveCovertMode();
     $('covertCamera')?.classList.add('covert-camera--session-off');
-    resetCameraNav('clip-library');
+    cameraNavStack = ['root', 'clip-library'];
+    if (openDayKey) cameraNavStack.push(`clip-day:${openDayKey}`);
+    paintCameraScreens();
+    scrollCameraTabToTop();
+  }
+
+  function showClipsHub(openDayKey) {
+    navigateToClipLibrary(openDayKey || null);
   }
 
   function showCameraHubRoot() {
@@ -735,6 +854,24 @@
     hidePreview();
     clearHud();
     void prepareLandscapeCapture();
+  }
+
+  async function exitCovertToNewestClipDay() {
+    if (isRecording) return;
+    userClosedSession = true;
+    cameraSessionActive = false;
+    stopCameraStream();
+    releaseWakeLock();
+    clearHud();
+    swipeUpCount = 0;
+    clearTimeout(swipeUpResetTimer);
+    hidePreview();
+    unlockLandscape();
+    const clips = await getAllClips();
+    const newest = [...clips].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+    const dayKey = newest ? getClipDayKey(newest.createdAt) : null;
+    navigateToClipLibrary(dayKey);
+    haptic('light');
   }
 
   function closeCameraSession() {
@@ -1080,7 +1217,7 @@
         if (getPrefs().strongHapticOnRecord) haptic('success');
         else haptic('medium');
         await refreshClipSummary();
-        if (!$('cameraPanelClipLibrary')?.classList.contains('hidden')) void renderClipsLibrary();
+        if (isClipLibraryScreen(getActiveCameraScreenId())) void renderClipsLibrary();
       } catch {
         clearHud();
         haptic('medium');
@@ -1163,7 +1300,7 @@
       if (swipeUpCount >= SWIPE_CLOSE_REQUIRED) {
         swipeUpCount = 0;
         clearTimeout(swipeUpResetTimer);
-        closeCameraSession();
+        void exitCovertToNewestClipDay();
       }
       return;
     }
