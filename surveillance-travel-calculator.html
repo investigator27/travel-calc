@@ -2345,7 +2345,7 @@
   </div>
 </div>
 
-<script src="assets/covert-camera.js?v=167" onerror="window.__covertCameraLoadFailed=true"></script>
+<script src="assets/covert-camera.js?v=168" onerror="window.__covertCameraLoadFailed=true"></script>
 <script>
 (() => {
   const doc = document;
@@ -2367,8 +2367,8 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   /** Keep in sync each deploy: release-notes.json appVersion + latest, and service-worker.js activeCacheName. */
-  const BUNDLED_APP_VERSION = '3.5.36';
-  const BUNDLED_PWA_CACHE_VERSION = 'v167';
+  const BUNDLED_APP_VERSION = '3.5.37';
+  const BUNDLED_PWA_CACHE_VERSION = 'v168';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3007,19 +3007,21 @@
     try {
       sessionStorage.setItem(POST_UPDATE_LAUNCH_KEY, '1');
       localStorage.setItem(POST_UPDATE_LAUNCH_KEY, '1');
+      document.documentElement.setAttribute('data-post-update', '1');
     } catch {}
   }
 
-  function consumePostUpdateLaunchPending() {
-    let pending = false;
+  function isPostUpdateLaunchPending() {
     try {
-      pending = sessionStorage.getItem(POST_UPDATE_LAUNCH_KEY) === '1'
-        || localStorage.getItem(POST_UPDATE_LAUNCH_KEY) === '1';
+      if (sessionStorage.getItem(POST_UPDATE_LAUNCH_KEY) === '1') return true;
+      if (localStorage.getItem(POST_UPDATE_LAUNCH_KEY) === '1') return true;
     } catch {}
-    if (!pending && /(?:\?|&)postUpdate=1(?:&|$)/.test(location.search || '')) {
-      pending = true;
-    }
-    if (!pending) return false;
+    if (/(?:\?|&)postUpdate=1(?:&|$)/.test(location.search || '')) return true;
+    if (document.documentElement.getAttribute('data-post-update') === '1') return true;
+    return false;
+  }
+
+  function clearPostUpdateLaunchMarkers() {
     try {
       sessionStorage.removeItem(POST_UPDATE_LAUNCH_KEY);
       localStorage.removeItem(POST_UPDATE_LAUNCH_KEY);
@@ -3036,6 +3038,15 @@
         history.replaceState(null, '', next || url.pathname);
       }
     } catch {}
+    document.documentElement.removeAttribute('data-post-update');
+  }
+
+  let postUpdateLaunchStarted = false;
+
+  async function ensurePostUpdateLaunchFlow() {
+    if (postUpdateLaunchStarted || !isPostUpdateLaunchPending()) return false;
+    postUpdateLaunchStarted = true;
+    await runPostUpdateLaunchFlow();
     return true;
   }
 
@@ -3060,15 +3071,16 @@
     clearUpdateReadyMark();
     suppressUpdatePromptOnLoad = true;
     quietUpdateLoad = false;
-    showUptodateBanner();
-    openSettings('updates');
+    updateUIState = 'uptodate';
+    openSettings('updates', { instant: true });
+    renderSoftwareUpdateUi('uptodate');
     try {
       await registerForCurrentBuild();
       refreshAllVersionDisplays();
-      showUptodateBanner();
+      renderSoftwareUpdateUi('uptodate');
     } finally {
       suppressUpdatePromptOnLoad = false;
-      document.documentElement.removeAttribute('data-post-update');
+      clearPostUpdateLaunchMarkers();
       refreshSettingsUpdateBadge();
     }
   }
@@ -3123,11 +3135,7 @@
       }
     } catch {}
 
-    const justUpdated = consumePostUpdateLaunchPending()
-      || document.documentElement.getAttribute('data-post-update') === '1';
-
-    if (justUpdated) {
-      await runPostUpdateLaunchFlow();
+    if (await ensurePostUpdateLaunchFlow()) {
       return;
     }
 
@@ -3780,6 +3788,7 @@
 
   async function applyAppUpdate() {
     if (applyingAppUpdate) return;
+    markPendingPostUpdateLaunch();
     applyingAppUpdate = true;
     stopWaitingReadyPoll();
     clearUpdateReadyMark();
@@ -4374,7 +4383,7 @@
     paintSettingsScreens();
   }
 
-  function openSettings(screenId) {
+  function openSettings(screenId, opts = {}) {
     if (!settingsOverlay) return;
     resetSettingsNav();
     settingsOverlay.classList.remove('hidden');
@@ -4390,10 +4399,15 @@
     } catch {
       syncFontSwitchUi('normal');
     }
-    requestAnimationFrame(() => {
+    const openSheet = () => {
       settingsOverlay.classList.add('is-open');
       if (screenId && screenId !== 'root') pushSettingsScreen(screenId);
-    });
+    };
+    if (opts.instant) {
+      openSheet();
+      return;
+    }
+    requestAnimationFrame(openSheet);
   }
 
   function closeSettings() {
@@ -4960,6 +4974,10 @@ $('summaryNote').textContent =
   }
 
   initTabBar();
+  void ensurePostUpdateLaunchFlow();
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) void ensurePostUpdateLaunchFlow();
+  });
   applyTheme(getThemePreference());
   applyAllPersonalizationPrefs();
   bindToggleStateLabels();
@@ -5334,9 +5352,11 @@ $('summaryNote').textContent =
     }
 
     applyTabPolicy(tabVisibilityState);
-    let initialTab = resolveInitialTabId();
-    if (!isTabEnabled(initialTab)) initialTab = 'calculator';
-    switchTab(initialTab);
+    if (!isPostUpdateLaunchPending()) {
+      let initialTab = resolveInitialTabId();
+      if (!isTabEnabled(initialTab)) initialTab = 'calculator';
+      switchTab(initialTab);
+    }
   }
 
   window.toolboxHaptic = toolboxHaptic;
