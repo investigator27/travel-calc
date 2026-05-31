@@ -1,11 +1,26 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v147",
-  "appVersion": "3.5.16",
+  "latest": "v148",
+  "appVersion": "3.5.17",
   "highlights": [
-    "Saved clips: newest first, duration, date/time, and GPS on each card."
+    "Clip addresses (not coordinates), white Recording/Stopped at top, stronger tap haptics."
   ],
   "builds": {
+    "v148": {
+      "intro": "Build v148 — clip addresses, HUD, haptics.",
+      "sections": [
+        {
+          "heading": "Camera",
+          "items": [
+            "Saved clips show street address (same geocoding as Hotels) — not raw GPS numbers.",
+            "Duration, date, and address use the same grey style as file size.",
+            "Recording / Stopped text moved to top in white.",
+            "Stronger vibration on each covert tap (enable Haptic feedback in Settings → Personalization).",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v148)."
+          ]
+        }
+      ]
+    },
     "v147": {
       "intro": "Build v147 — Saved clips list improvements.",
       "sections": [
