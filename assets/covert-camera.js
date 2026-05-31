@@ -169,6 +169,7 @@
 
   function showPermissionGate(show) {
     $('covertPermissionGate')?.classList.toggle('hidden', !show);
+    $('covertCamera')?.classList.toggle('covert-camera--gate-open', !!show);
   }
 
   function setPreviewVisible(visible) {
@@ -212,14 +213,18 @@
     };
   }
 
-  async function startCameraStream() {
-    if (mediaStream) return true;
+  function streamIsLive() {
+    return mediaStream?.getTracks().some((t) => t.readyState === 'live') ?? false;
+  }
+
+  async function startCameraStream(forceRetry) {
+    if (mediaStream && streamIsLive() && !forceRetry) return true;
+    stopCameraStream();
     if (!navigator.mediaDevices?.getUserMedia) {
       showPermissionGate(true);
       setStatus('Camera not supported in this browser.');
       return false;
     }
-    showPermissionGate(true);
     setStatus('Allow camera & microphone when Android asks…');
     try {
       mediaStream = await navigator.mediaDevices.getUserMedia(getVideoConstraints());
@@ -231,7 +236,12 @@
         });
       } catch (err2) {
         showPermissionGate(true);
-        setStatus('Camera blocked — tap Allow or fix permissions in Settings.');
+        const denied = err2?.name === 'NotAllowedError' || err2?.name === 'PermissionDeniedError';
+        setStatus(
+          denied
+            ? 'Permission denied — tap Allow below or enable Camera in Android settings.'
+            : 'Camera unavailable — tap Allow to try again.'
+        );
         return false;
       }
     }
@@ -498,21 +508,32 @@
     zone?.addEventListener('touchstart', onTouchStart, { passive: true });
     zone?.addEventListener('touchend', onTouchEnd, { passive: true });
 
-    $('covertAllowCameraBtn')?.addEventListener('click', async () => {
+    const allowBtn = $('covertAllowCameraBtn');
+    let allowInFlight = false;
+    const onAllowClick = async () => {
+      if (allowInFlight) return;
+      allowInFlight = true;
       haptic('light');
-      stopCameraStream();
-      const ok = await startCameraStream();
-      if (ok) {
-        try {
-          if (screen.orientation?.lock) await screen.orientation.lock('landscape');
-        } catch {}
+      if (allowBtn) {
+        allowBtn.disabled = true;
+        allowBtn.textContent = 'Requesting…';
       }
-    });
-  }
-
-  async function requestCameraOnTabOpen() {
-    stopCameraStream();
-    return startCameraStream();
+      try {
+        const ok = await startCameraStream(true);
+        if (ok) {
+          try {
+            if (screen.orientation?.lock) await screen.orientation.lock('landscape');
+          } catch {}
+        }
+      } finally {
+        allowInFlight = false;
+        if (allowBtn) {
+          allowBtn.disabled = false;
+          allowBtn.textContent = 'Allow camera access';
+        }
+      }
+    };
+    allowBtn?.addEventListener('click', onAllowClick);
   }
 
   async function onTabEnter() {
@@ -521,14 +542,13 @@
     enterCovertMode();
     hidePreview();
     await refreshClipSummary();
-    setStatus('Allow camera & microphone when Android asks…');
-    showPermissionGate(true);
-    const ok = await requestCameraOnTabOpen();
-    if (ok) {
-      try {
-        if (screen.orientation?.lock) await screen.orientation.lock('landscape');
-      } catch {}
+    if (streamIsLive()) {
+      showPermissionGate(false);
+      setStatus('Ready — 3 taps to record');
+      return;
     }
+    showPermissionGate(true);
+    setStatus('Tap Allow camera access — Android will ask for permission.');
   }
 
   function onTabLeave() {
