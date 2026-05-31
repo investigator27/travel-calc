@@ -1,11 +1,24 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v161",
-  "appVersion": "3.5.30",
+  "latest": "v162",
+  "appVersion": "3.5.31",
   "highlights": [
-    "Restore update flow: badges when ready, Settings → Software Update after Update Now."
+    "No false update badge when you are already on the latest build."
   ],
   "builds": {
+    "v162": {
+      "intro": "Build v162 — false update ready fix.",
+      "sections": [
+        {
+          "heading": "Fixes",
+          "items": [
+            "Clears stale update badge when installed build matches v162 (no phantom update on current version).",
+            "Ignores same-version waiting service workers and old session flags.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, release-notes.json (v162)."
+          ]
+        }
+      ]
+    },
     "v161": {
       "intro": "Build v161 — software update sequence.",
       "sections": [

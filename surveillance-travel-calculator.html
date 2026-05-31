@@ -2334,7 +2334,7 @@
   </div>
 </div>
 
-<script src="assets/covert-camera.js?v=161" onerror="window.__covertCameraLoadFailed=true"></script>
+<script src="assets/covert-camera.js?v=162" onerror="window.__covertCameraLoadFailed=true"></script>
 <script>
 (() => {
   const doc = document;
@@ -2356,8 +2356,8 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   /** Keep in sync each deploy: release-notes.json appVersion + latest, and service-worker.js activeCacheName. */
-  const BUNDLED_APP_VERSION = '3.5.30';
-  const BUNDLED_PWA_CACHE_VERSION = 'v161';
+  const BUNDLED_APP_VERSION = '3.5.31';
+  const BUNDLED_PWA_CACHE_VERSION = 'v162';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -2697,9 +2697,37 @@
   }
 
   function getActiveSwBuild(reg) {
-    return parseBuildFromScriptUrl(reg?.active?.scriptURL)
-      || parseBuildFromScriptUrl(navigator.serviceWorker?.controller?.scriptURL)
-      || '';
+    const fromScript = parseBuildFromScriptUrl(reg?.active?.scriptURL)
+      || parseBuildFromScriptUrl(navigator.serviceWorker?.controller?.scriptURL);
+    if (fromScript) return fromScript;
+    if (navigator.serviceWorker?.controller) {
+      return registeredBuild || BUNDLED_PWA_CACHE_VERSION;
+    }
+    return '';
+  }
+
+  function isWaitingWorkerActionable(registration) {
+    if (!registration?.waiting || !navigator.serviceWorker.controller) return false;
+    const waitingBuild = parseBuildFromScriptUrl(registration.waiting.scriptURL);
+    const activeBuild = getActiveSwBuild(registration);
+    const targetBuild = resolveTargetBuild();
+    if (waitingBuild && activeBuild && !isBuildNewer(waitingBuild, activeBuild)) return false;
+    if (waitingBuild && targetBuild && !isBuildNewer(waitingBuild, targetBuild)) return false;
+    if (!waitingBuild && activeBuild && targetBuild && !isBuildNewer(targetBuild, activeBuild)) return false;
+    return !!(waitingBuild || (targetBuild && isBuildNewer(targetBuild, activeBuild)));
+  }
+
+  function reconcileInstalledUpdateState(registration) {
+    const reg = registration || swRegistration;
+    if (!reg || !navigator.serviceWorker.controller) return;
+    if (isWaitingWorkerActionable(reg)) return;
+    waitingSW = null;
+    pendingUpdateBuild = '';
+    clearUpdateReadyMark();
+    if (updateUIState === 'ready' || updateUIState === 'downloading') {
+      showUptodateBanner();
+    }
+    refreshSettingsUpdateBadge();
   }
 
   function resolveTargetBuild() {
@@ -3000,6 +3028,7 @@
       await waitForServiceWorkerSettle(registration, 10000);
       bindWaitingWorker(registration);
     }
+    reconcileInstalledUpdateState(registration);
   }
 
   async function handleAppLoadUpdateSequence() {
@@ -3245,9 +3274,21 @@
 
   function isUpdateMenuBadgeActive() {
     if (updateUIState === 'installing' || updateUIState === 'uptodate') return false;
-    if (updateUIState === 'ready' || updateUIState === 'downloading') return true;
-    if (waitingSW) return true;
-    return isUpdateReadyInSession();
+    const reg = swRegistration;
+    if (reg && !isWaitingWorkerActionable(reg)) {
+      const activeBuild = getActiveSwBuild(reg);
+      const targetBuild = resolveTargetBuild();
+      if (activeBuild && targetBuild && !isBuildNewer(targetBuild, activeBuild)) {
+        return false;
+      }
+    }
+    if (updateUIState === 'downloading') return true;
+    if (updateUIState === 'ready') {
+      return !!(reg && isWaitingWorkerActionable(reg));
+    }
+    if (waitingSW && reg && isWaitingWorkerActionable(reg)) return true;
+    if (isUpdateReadyInSession() && reg && isWaitingWorkerActionable(reg)) return true;
+    return false;
   }
 
   async function postBadgeToServiceWorkers(count) {
@@ -3665,6 +3706,7 @@
     registeredBuild = targetBuild;
     swRegistration = registration;
     attachRegistrationListeners(registration);
+    reconcileInstalledUpdateState(registration);
     return registration;
   }
 
@@ -3757,12 +3799,11 @@
   }
 
   function bindWaitingWorker(registration, opts = {}) {
-    if (!registration?.waiting) return false;
-    const waitingBuild = parseBuildFromScriptUrl(registration.waiting.scriptURL);
-    const activeBuild = getActiveSwBuild(registration);
-    if (activeBuild && waitingBuild && !isBuildNewer(waitingBuild, activeBuild)) {
+    if (!isWaitingWorkerActionable(registration)) {
+      reconcileInstalledUpdateState(registration);
       return false;
     }
+    const waitingBuild = parseBuildFromScriptUrl(registration.waiting.scriptURL);
     waitingSW = registration.waiting;
     pendingUpdateBuild = waitingBuild
       || parseBuildFromCacheName(pendingUpdateBuild)
