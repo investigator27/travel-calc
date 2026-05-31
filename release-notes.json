@@ -1,11 +1,24 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v145",
-  "appVersion": "3.5.14",
+  "latest": "v146",
+  "appVersion": "3.5.15",
   "highlights": [
-    "Swipe up twice opens clips library — view, select, send to OneDrive."
+    "Camera recording locked to landscape (screen + 1080p wide video)."
   ],
   "builds": {
+    "v146": {
+      "intro": "Build v146 — landscape lock for covert recording.",
+      "sections": [
+        {
+          "heading": "Camera",
+          "items": [
+            "Screen locks to landscape while camera is open and when recording starts.",
+            "Rear camera requests 1920×1080 (16:9) and corrects portrait stream when possible.",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v146)."
+          ]
+        }
+      ]
+    },
     "v145": {
       "intro": "Build v145 — Camera clips library on double swipe up.",
       "sections": [
