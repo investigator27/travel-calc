@@ -1,6 +1,6 @@
 /* sw-revision: 27 — bump this comment when testing updates locally */
 const BASE = new URL('./', self.location).pathname;
-let activeCacheName = 'surveillance-travel-pwa-v175';
+let activeCacheName = 'surveillance-travel-pwa-v176';
 
 const CORE_ASSETS = [
   BASE + 'index.html',
@@ -100,8 +100,7 @@ async function notifyAppIconBadge(count) {
   await syncSwAppBadge(count);
   await broadcastUpdate({ type: 'APP_ICON_BADGE', count });
   if (count > 0) {
-    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    if (!clients.length) await showSwUpdateReadyNotification();
+    await showSwUpdateReadyNotification();
   } else {
     await closeSwUpdateNotifications();
   }

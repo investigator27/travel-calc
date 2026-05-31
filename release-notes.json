@@ -1,11 +1,24 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v175",
-  "appVersion": "3.5.44",
+  "latest": "v176",
+  "appVersion": "3.5.45",
   "highlights": [
-    "Update badges only on menu and Settings Software Update row; notification sound plays once per build, not on every tab or unlock."
+    "Update badges and notification appear on app open or in background when a new build is ready — not only after opening Software Update."
   ],
   "builds": {
+    "v176": {
+      "intro": "Build v176 — early update badges and background notification.",
+      "sections": [
+        {
+          "heading": "Fixes",
+          "items": [
+            "On app open, polls for a waiting update and shows menu/settings badges without visiting Software Update.",
+            "Service worker shows launcher notification when download finishes, even if Toolbox was closed.",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v176)."
+          ]
+        }
+      ]
+    },
     "v175": {
       "intro": "Build v175 — badge placement and notification sound fix.",
       "sections": [

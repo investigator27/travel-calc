@@ -2408,7 +2408,7 @@
   </div>
 </div>
 
-<script src="assets/covert-camera.js?v=175" onerror="window.__covertCameraLoadFailed=true"></script>
+<script src="assets/covert-camera.js?v=176" onerror="window.__covertCameraLoadFailed=true"></script>
 <script>
 (() => {
   const doc = document;
@@ -2430,8 +2430,8 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   /** Keep in sync each deploy: release-notes.json appVersion + latest, and service-worker.js activeCacheName. */
-  const BUNDLED_APP_VERSION = '3.5.44';
-  const BUNDLED_PWA_CACHE_VERSION = 'v175';
+  const BUNDLED_APP_VERSION = '3.5.45';
+  const BUNDLED_PWA_CACHE_VERSION = 'v176';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -3202,34 +3202,52 @@
     }
   }
 
+  /** Wait for a newer SW to reach waiting, then turn on menu/settings badges + launcher dot. */
+  async function pollForWaitingUpdate(registration, maxMs = 50000) {
+    const started = Date.now();
+    while (Date.now() - started < maxMs) {
+      if (shouldBlockUpdateUi()) return false;
+      const reg = swRegistration
+        || registration
+        || (await navigator.serviceWorker.getRegistration(BASE_PATH));
+      if (!reg || !navigator.serviceWorker.controller) return false;
+
+      if (reg.waiting) {
+        if (await bindWaitingWorker(reg, { showBanner: false })) return true;
+      }
+      if (reg.installing) watchInstallingWorker(reg);
+
+      await new Promise((resolve) => setTimeout(resolve, 450));
+    }
+    const reg = swRegistration || registration || (await navigator.serviceWorker.getRegistration(BASE_PATH));
+    if (!reg) return false;
+    if (await bindWaitingWorker(reg, { showBanner: false })) return true;
+    await probeForRemoteUpdate(reg);
+    return isUpdateMenuBadgeActive();
+  }
+
   async function registerServiceWorkerOnStartup() {
     if (!('serviceWorker' in navigator)) return;
     if (shouldBlockUpdateUi()) return;
 
+    await syncBuildLabelFromReleaseNotes();
     const registration = await registerForCurrentBuild();
     if (!navigator.serviceWorker.controller) return;
 
-    if (registration.waiting) {
-      await bindWaitingWorker(registration);
+    if (await bindWaitingWorker(registration, { showBanner: false })) return;
+
+    if (registration.waiting || registration.installing) {
+      if (await pollForWaitingUpdate(registration, 20000)) return;
+      void pollForWaitingUpdate(registration);
       return;
     }
-    if (registration.installing) {
-      watchInstallingWorker(registration);
-      await waitForServiceWorkerSettle(registration, 10000);
-      await bindWaitingWorker(registration);
-      return;
-    }
-    if (!registration.installing && !registration.waiting) {
+
+    try {
       await registration.update();
-    }
-    if (registration.waiting) {
-      await bindWaitingWorker(registration);
-    } else if (registration.installing) {
-      watchInstallingWorker(registration);
-      await waitForServiceWorkerSettle(registration, 10000);
-      await bindWaitingWorker(registration);
-    }
-    await clearStaleUpdateUiIfCurrent(registration);
+    } catch {}
+
+    if (await pollForWaitingUpdate(registration, 20000)) return;
+    void pollForWaitingUpdate(registration);
   }
 
   async function handleAppLoadUpdateSequence() {
@@ -3865,7 +3883,7 @@
     });
 
     if (registration.waiting && navigator.serviceWorker.controller && !shouldBlockUpdateUi()) {
-      void bindWaitingWorker(registration);
+      void bindWaitingWorker(registration, { showBanner: false });
     }
   }
 
@@ -5561,7 +5579,12 @@ $('summaryNote').textContent =
       refreshSettingsUpdateBadge();
       if (isUpdateBusy()) return;
       checkForAppUpdate({ showCheckingUi: false }).then(async (status) => {
-        if (status === 'available') await bindWaitingWorker(swRegistration);
+        if (status === 'available') {
+          await bindWaitingWorker(swRegistration, { showBanner: false });
+          return;
+        }
+        const reg = swRegistration || (await navigator.serviceWorker.getRegistration(BASE_PATH));
+        if (reg && !isUpdateMenuBadgeActive()) void pollForWaitingUpdate(reg, 15000);
       });
     });
     setInterval(() => {
