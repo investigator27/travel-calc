@@ -9,6 +9,10 @@
   const INDEX_KEY = 'toolboxCovertClipIndex';
   const TAP_REQUIRED = 3;
   const TAP_RESET_MS = 700;
+  const SWIPE_CLOSE_REQUIRED = 2;
+  const SWIPE_THRESHOLD = 48;
+  const SWIPE_UP_RESET_MS = 1200;
+  const HUD_RECORDING_MS = 5000;
 
   const defaultPrefs = {
     wakeLock: true,
@@ -26,8 +30,13 @@
   let wakeLockSentinel = null;
   let maxClipTimer = null;
   let swipeStartY = null;
+  let swipeUpCount = 0;
+  let swipeUpResetTimer = null;
+  let hudTimer = null;
   let dbPromise = null;
   let allowInFlight = false;
+  let cameraSessionActive = false;
+  let userClosedSession = false;
 
   function $(id) {
     return document.getElementById(id);
@@ -145,9 +154,23 @@
     return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || '';
   }
 
-  function setStatus(text) {
+  function clearHud() {
+    clearTimeout(hudTimer);
+    hudTimer = null;
     const el = $('covertStatus');
-    if (el) el.textContent = text;
+    if (el) el.textContent = '';
+  }
+
+  /** Only "Recording" (auto-hide) and "Stopped" on the black screen. */
+  function showBriefHud(text, autoHideMs) {
+    const el = $('covertStatus');
+    if (!el) return;
+    clearTimeout(hudTimer);
+    hudTimer = null;
+    el.textContent = text;
+    if (autoHideMs > 0) {
+      hudTimer = setTimeout(clearHud, autoHideMs);
+    }
   }
 
   function setPermissionError(text) {
@@ -211,16 +234,55 @@
   }
 
   function enterCovertMode() {
+    const tab = $('tab-camera');
+    tab?.classList.add('tab-panel--camera-active');
+    $('covertCamera')?.classList.remove('covert-camera--session-off');
+    $('covertCameraIdle')?.classList.add('hidden');
     document.querySelector('.app-shell')?.classList.add('app-shell--covert-camera');
     setBlackVisible(true);
   }
 
   function leaveCovertMode() {
+    const tab = $('tab-camera');
+    tab?.classList.remove('tab-panel--camera-active');
     document.querySelector('.app-shell')?.classList.remove('app-shell--covert-camera');
     document.documentElement.style.backgroundColor = '';
     setBlackVisible(false);
+    hidePreview();
     showPermissionGate(false);
     setPermissionError('');
+  }
+
+  function showCameraIdle() {
+    cameraSessionActive = false;
+    leaveCovertMode();
+    $('covertCamera')?.classList.add('covert-camera--session-off');
+    $('covertCameraIdle')?.classList.remove('hidden');
+  }
+
+  function openCameraSession() {
+    cameraSessionActive = true;
+    $('covertCamera')?.classList.remove('covert-camera--session-off');
+    $('covertCameraIdle')?.classList.add('hidden');
+    enterCovertMode();
+    hidePreview();
+    clearHud();
+  }
+
+  function closeCameraSession() {
+    if (isRecording) return;
+    userClosedSession = true;
+    cameraSessionActive = false;
+    stopCameraStream();
+    releaseWakeLock();
+    clearHud();
+    swipeUpCount = 0;
+    clearTimeout(swipeUpResetTimer);
+    try {
+      screen.orientation?.unlock?.();
+    } catch {}
+    showCameraIdle();
+    haptic('light');
   }
 
   function showPermissionGate(show) {
@@ -312,35 +374,34 @@
 
     if (!window.isSecureContext) {
       showPermissionGate(true);
-      const msg = 'Camera needs HTTPS — open Toolbox from the installed app icon, not a file link.';
-      setPermissionError(msg);
-      setStatus(msg);
+      clearHud();
+      setPermissionError('Open Toolbox from the installed app icon (HTTPS required).');
       return false;
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
       showPermissionGate(true);
-      const msg = 'Camera API not available in this browser.';
-      setPermissionError(msg);
-      setStatus(msg);
+      clearHud();
+      setPermissionError('Camera not available in this browser.');
       return false;
     }
 
-    setStatus('Look for the Android Camera / Microphone popup — tap Allow on both.');
+    clearHud();
 
     try {
       mediaStream = await tryGetUserMediaCascade();
     } catch (err) {
       showPermissionGate(true);
       const permState = await queryMediaPermissionState();
-      const msg = describeMediaError(err, permState);
-      setPermissionError(msg);
-      setStatus(msg);
+      setPermissionError(describeMediaError(err, permState));
+      clearHud();
       return false;
     }
 
     showPermissionGate(false);
     setPermissionError('');
+    clearHud();
+    openCameraSession();
 
     const video = $('covertVideoPreview');
     if (video) {
@@ -355,12 +416,6 @@
       }
     }
 
-    const hasAudio = mediaStream.getAudioTracks().length > 0;
-    setStatus(
-      hasAudio
-        ? 'Ready — 3 taps to record'
-        : 'Ready (no mic) — 3 taps to record. Enable microphone in Settings if needed.'
-    );
     return true;
   }
 
@@ -375,7 +430,7 @@
       allowBtn.textContent = 'Requesting…';
     }
     haptic('light');
-    setStatus('Look for the Android popup — tap Allow for Camera and Microphone.');
+    clearHud();
 
     // Start getUserMedia in this same tap (do not await anything before the cascade).
     return startCameraStream(true)
@@ -419,7 +474,7 @@
     if (isRecording || !mediaStream) return;
     const mimeType = pickMimeType();
     if (!mimeType) {
-      setStatus('Video recording not supported on this device.');
+      haptic('medium');
       return;
     }
     recordedChunks = [];
@@ -444,18 +499,19 @@
       setBlackVisible(true);
       hidePreview();
       if (blob.size < 1000) {
-        setStatus('Recording failed — try again.');
+        clearHud();
         haptic('medium');
         return;
       }
       try {
-        const id = await saveClip(blob, mediaRecorder.mimeType || mimeType);
-        setStatus(`Saved ${id} — 3 taps to record again`);
+        await saveClip(blob, mediaRecorder.mimeType || mimeType);
+        showBriefHud('Stopped', 0);
         if (getPrefs().strongHapticOnRecord) haptic('success');
         else haptic('medium');
         await refreshClipSummary();
       } catch {
-        setStatus('Could not save clip.');
+        clearHud();
+        haptic('medium');
       }
     };
     mediaRecorder.start(1000);
@@ -464,7 +520,7 @@
     setBlackVisible(true);
     hidePreview();
     await acquireWakeLock();
-    setStatus('Recording — 3 taps to stop');
+    showBriefHud('Recording', HUD_RECORDING_MS);
     if (getPrefs().strongHapticOnRecord) haptic('success');
     else haptic('medium');
 
@@ -482,7 +538,7 @@
     try {
       if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
     } catch {}
-    setStatus('Saving…');
+    showBriefHud('Stopped', 0);
   }
 
   function onTripleTap() {
@@ -511,14 +567,30 @@
   }
 
   function onTouchEnd(e) {
+    if ($('covertCamera')?.classList.contains('covert-camera--gate-open')) return;
     if (swipeStartY == null || !e.changedTouches.length) return;
     const dy = swipeStartY - e.changedTouches[0].clientY;
     swipeStartY = null;
-    if (dy > 48) {
-      showPreview();
+    if (dy > SWIPE_THRESHOLD) {
+      if (!cameraSessionActive || isRecording) return;
+      swipeUpCount += 1;
+      clearTimeout(swipeUpResetTimer);
+      swipeUpResetTimer = setTimeout(() => {
+        swipeUpCount = 0;
+      }, SWIPE_UP_RESET_MS);
+      if (swipeUpCount === 1) showPreview();
+      if (swipeUpCount >= SWIPE_CLOSE_REQUIRED) {
+        swipeUpCount = 0;
+        clearTimeout(swipeUpResetTimer);
+        closeCameraSession();
+      }
       return;
     }
-    if (dy < -48) hidePreview();
+    if (dy < -SWIPE_THRESHOLD) {
+      swipeUpCount = 0;
+      clearTimeout(swipeUpResetTimer);
+      hidePreview();
+    }
   }
 
   async function refreshClipSummary() {
@@ -544,7 +616,6 @@
           title: 'Toolbox covert clips',
           text: 'Upload to OneDrive (e.g. Desktop folder) when prompted.',
         });
-        setStatus('Share sheet opened — pick OneDrive.');
         return;
       } catch (err) {
         if (err?.name === 'AbortError') return;
@@ -557,7 +628,6 @@
       a.click();
       URL.revokeObjectURL(a.href);
     });
-    setStatus('Downloads started — move files to OneDrive if share is unavailable.');
   }
 
   async function refreshCameraPermissionUi() {
@@ -582,7 +652,10 @@
 
     $('cameraOpenAppSettingsBtn')?.addEventListener('click', () => {
       haptic('light');
-      setStatus('Android: Settings → Apps → Toolbox → Permissions → Camera & Microphone.');
+      window.alert(
+        'Android: Settings → Apps → Toolbox (or Chrome) → Permissions → Camera & Microphone.\n\n' +
+          'Chrome: ⋮ → Settings → Site settings → Camera / Microphone → Allow for this site.'
+      );
     });
 
     $('cameraWakeLockSwitch')?.addEventListener('change', (e) => {
@@ -638,7 +711,10 @@
     await refreshCameraPermissionUi();
     const summary = await getStorageSummary();
     const el = $('cameraStorageSummary');
-    if (el) el.textContent = `${summary.count} clip(s) · ${formatBytes(summary.bytes)} in Toolbox storage`;
+    if (el) {
+      el.textContent =
+        `${summary.count} clip(s) · ${formatBytes(summary.bytes)} — saved inside Toolbox (not Gallery). Tap Upload clips to export.`;
+    }
   }
 
   function bindUi() {
@@ -659,29 +735,55 @@
       },
       { capture: true }
     );
+
+    $('covertOpenCameraBtn')?.addEventListener('click', () => {
+      haptic('light');
+      userClosedSession = false;
+      cameraSessionActive = true;
+      resumeCameraSession();
+    });
   }
 
   async function onTabEnter() {
     bindUi();
     bindSettings();
-    enterCovertMode();
-    hidePreview();
+    swipeUpCount = 0;
+    clearTimeout(swipeUpResetTimer);
     await refreshClipSummary().catch(() => {});
+
+    if (userClosedSession) {
+      showCameraIdle();
+      return;
+    }
+
+    cameraSessionActive = true;
+    resumeCameraSession();
+  }
+
+  function resumeCameraSession() {
+    openCameraSession();
     if (streamIsLive()) {
       showPermissionGate(false);
-      setStatus('Ready — 3 taps to record');
+      clearHud();
       return;
     }
     showPermissionGate(true);
     setPermissionError('');
-    setStatus('Tap Allow — you should get an Android popup for Camera (then Microphone).');
+    clearHud();
   }
 
   function onTabLeave() {
     if (isRecording) stopRecording();
     stopCameraStream();
     releaseWakeLock();
+    clearHud();
+    swipeUpCount = 0;
+    clearTimeout(swipeUpResetTimer);
+    cameraSessionActive = false;
     leaveCovertMode();
+    $('covertCamera')?.classList.add('covert-camera--session-off');
+    $('covertCameraIdle')?.classList.add('hidden');
+    // userClosedSession unchanged — reopening tab after swipe-close stays on idle until Open camera
     try {
       screen.orientation?.unlock?.();
     } catch {}
@@ -698,6 +800,8 @@
     onTabEnter,
     onTabLeave,
     requestCameraAccess,
+    openCameraSession,
+    closeCameraSession,
     refreshCameraSettingsUi,
     refreshClipSummary,
   };
