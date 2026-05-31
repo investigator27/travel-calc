@@ -197,19 +197,14 @@
     .app-shell--covert-camera{background:#000}
     .app-shell--covert-camera .app-header{display:none}
     .app-shell--covert-camera .app-content{padding:0;overflow:hidden}
-    .app-shell--covert-camera .tab-bar{
-      background:#000;
-      border:none;
-      box-shadow:none;
-    }
-    .app-shell--covert-camera .tab-bar-item{color:#3f3f46}
-    .app-shell--covert-camera .tab-bar-item.active{color:#52525b}
+    .app-shell--covert-camera .tab-bar{display:none!important}
     #tab-camera{
       position:fixed;
       top:0;
       left:0;
       right:0;
-      bottom:calc(4.25rem + env(safe-area-inset-bottom,0px));
+      bottom:0;
+      padding-bottom:env(safe-area-inset-bottom,0px);
       margin:0;
       width:100%;
       padding:0;
@@ -219,6 +214,32 @@
     }
     .app-shell--covert-camera #tab-camera{z-index:350}
     #tab-camera.hidden{display:none!important}
+    #tab-camera:not(.tab-panel--camera-active){
+      position:relative;
+      inset:auto;
+      bottom:auto;
+      padding-bottom:0;
+      background:var(--color-bg);
+    }
+    .covert-camera-idle{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:var(--space-4);
+      min-height:min(70vh,32rem);
+      padding:var(--space-5);
+      text-align:center;
+    }
+    .covert-camera-idle.hidden{display:none!important}
+    .covert-camera-idle p{
+      margin:0;
+      font-size:var(--text-sm);
+      color:var(--color-text-muted);
+      max-width:18rem;
+      line-height:1.5;
+    }
+    .covert-camera--session-off{display:none!important}
     .covert-camera{
       position:absolute;
       inset:0;
@@ -289,15 +310,18 @@
       position:absolute;
       left:0;
       right:0;
-      bottom:0;
+      bottom:env(safe-area-inset-bottom,0px);
       z-index:4;
-      padding:var(--space-2) var(--space-3);
-      font-size:var(--text-xs);
-      color:#a1a1aa;
-      background:linear-gradient(transparent,rgb(0 0 0 / .55));
+      padding:var(--space-2);
+      font-size:10px;
+      font-weight:500;
+      line-height:1.2;
+      color:#3f3f46;
+      text-align:center;
+      background:none;
       pointer-events:none;
     }
-    .covert-camera--recording .covert-camera__hud{color:#fca5a5}
+    .covert-camera__hud:empty{display:none}
     .tab-bar{
       grid-row:3;
       z-index:200;
@@ -1352,13 +1376,16 @@
     </div>
 
     <div class="tab-panel hidden" id="tab-camera" data-tab="camera" role="tabpanel" aria-labelledby="tab-btn-camera">
+      <div class="covert-camera-idle hidden" id="covertCameraIdle">
+        <p>Camera is off. Open when you are ready to record.</p>
+        <button type="button" class="btn btn-primary" id="covertOpenCameraBtn">Open camera</button>
+      </div>
       <div class="covert-camera" id="covertCamera" aria-label="Covert camera">
         <video id="covertVideoPreview" playsinline muted autoplay></video>
         <div class="covert-camera__black" id="covertBlack"></div>
         <div class="covert-camera__tap" id="covertTapZone" aria-hidden="true"></div>
         <div class="covert-camera__hud"><span id="covertStatus"></span></div>
         <div class="covert-permission-gate" id="covertPermissionGate">
-          <p>Tap the button below. Android should show a system popup — tap <strong>Allow</strong> for Camera and Microphone. If you never see a popup, permissions were blocked earlier (see red message).</p>
           <p class="covert-permission-gate__error" id="covertPermissionError" role="alert" aria-live="polite"></p>
           <button type="button" class="btn btn-primary" id="covertAllowCameraBtn">Allow camera access</button>
         </div>
@@ -1789,7 +1816,7 @@
               <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></span>
               <div class="settings-page-intro__text">
                 <h1 class="settings-page-intro__title" id="camera-settings-intro-title">Camera</h1>
-                <p class="settings-page-intro__blurb">Covert video — Android, installed PWA, rear camera, landscape 1080p.</p>
+                <p class="settings-page-intro__blurb">Covert video — rear camera, landscape. Clips stay inside Toolbox (not Android Gallery) until you upload or export below.</p>
               </div>
             </div>
           </section>
@@ -1828,7 +1855,9 @@
               <ol class="steps-list">
                 <li>3 taps on the black area — start recording (screen stays black).</li>
                 <li>3 taps again — stop; clip saved as 00000, 00001, …</li>
-                <li>Swipe up — preview · Swipe down — hide.</li>
+                <li>Swipe up — live preview · Swipe down — hide preview.</li>
+                <li>Swipe up twice (after stop) — close camera and return to Camera tab.</li>
+                <li>Clips are stored in Toolbox only — use Upload clips below to save to OneDrive or Files (not Gallery).</li>
               </ol>
               <p><strong>Notes</strong></p>
               <ul class="steps-list">
@@ -2078,7 +2107,7 @@
   </div>
 </div>
 
-<script src="assets/covert-camera.js?v=141" onerror="window.__covertCameraLoadFailed=true"></script>
+<script src="assets/covert-camera.js?v=144" onerror="window.__covertCameraLoadFailed=true"></script>
 <script>
 (() => {
   const doc = document;
@@ -2100,8 +2129,8 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   /** Keep in sync each deploy: release-notes.json appVersion + latest, and service-worker.js activeCacheName. */
-  const BUNDLED_APP_VERSION = '3.5.10';
-  const BUNDLED_PWA_CACHE_VERSION = 'v141';
+  const BUNDLED_APP_VERSION = '3.5.13';
+  const BUNDLED_PWA_CACHE_VERSION = 'v144';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'

@@ -1,11 +1,52 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v141",
-  "appVersion": "3.5.10",
+  "latest": "v144",
+  "appVersion": "3.5.13",
   "highlights": [
-    "Camera Allow button now triggers Android permission popup on first tap when not blocked."
+    "Camera gestures and deploy package v144 — upload all four files listed in release notes."
   ],
   "builds": {
+    "v144": {
+      "intro": "Build v144 — full deploy package (camera + version sync).",
+      "sections": [
+        {
+          "heading": "Deploy (required every update)",
+          "items": [
+            "Upload together: surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json.",
+            "Then on phone: Settings → Software Update → Update.",
+            "Camera: swipe up = preview; swipe up twice after stop = close camera; tab bar returns; Open camera to start again."
+          ]
+        }
+      ]
+    },
+    "v143": {
+      "intro": "Build v143 — camera swipe gestures corrected.",
+      "sections": [
+        {
+          "heading": "Camera",
+          "items": [
+            "Swipe up once — live preview. Swipe down — hide preview.",
+            "Swipe up twice (when not recording) — close camera, tab bar returns, Open camera on Camera tab.",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v143)."
+          ]
+        }
+      ]
+    },
+    "v142": {
+      "intro": "Build v142 — covert camera UI and storage clarity.",
+      "sections": [
+        {
+          "heading": "Camera",
+          "items": [
+            "Tab bar hidden on black screen; camera fills the display.",
+            "Two swipes up for live preview; swipe down to hide.",
+            "Only brief Recording / Stopped labels (small dark grey).",
+            "Clips stay in Toolbox (not Gallery) — export via Settings → Camera → Upload clips.",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v142)."
+          ]
+        }
+      ]
+    },
     "v141": {
       "intro": "Build v141 — Android camera permission popup on first tap.",
       "sections": [
