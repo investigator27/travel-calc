@@ -198,6 +198,78 @@
     });
   }
 
+  function getClipDayKey(timestamp) {
+    const d = new Date(timestamp || Date.now());
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function formatClipDayHeading(timestamp) {
+    const d = new Date(timestamp || Date.now());
+    return d.toLocaleDateString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  let cameraNavStack = ['root'];
+
+  function paintCameraScreens() {
+    const stack = $('cameraStack');
+    const hub = $('covertClipsHub');
+    if (!stack) return;
+    const activeId = cameraNavStack[cameraNavStack.length - 1] || 'root';
+    const isSub = cameraNavStack.length > 1;
+    hub?.classList.toggle('is-subpage', isSub);
+    stack.querySelectorAll('.camera-screen').forEach((screen) => {
+      const id = screen.dataset.cameraScreen || '';
+      const isActive = id === activeId;
+      const isBehind = isSub && cameraNavStack[cameraNavStack.length - 2] === id;
+      screen.classList.toggle('is-active', isActive);
+      screen.classList.toggle('is-behind', isBehind);
+      screen.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+    });
+    if (activeId === 'clip-library') void renderClipsLibrary();
+    if (activeId === 'camera-settings') void refreshCameraSettingsUi();
+  }
+
+  function pushCameraScreen(screenId) {
+    if (!screenId || screenId === 'root') return;
+    const top = cameraNavStack[cameraNavStack.length - 1];
+    if (top === screenId) return;
+    cameraNavStack.push(screenId);
+    paintCameraScreens();
+  }
+
+  function popCameraScreen() {
+    if (cameraNavStack.length <= 1) return;
+    cameraNavStack.pop();
+    paintCameraScreens();
+  }
+
+  function resetCameraNav(screenId = 'root') {
+    cameraNavStack = [screenId || 'root'];
+    paintCameraScreens();
+  }
+
+  function bindCameraNav() {
+    if (window.__cameraNavBound) return;
+    window.__cameraNavBound = true;
+
+    $('cameraHubBackBtn')?.addEventListener('click', () => {
+      haptic('light');
+      popCameraScreen();
+    });
+
+    $('cameraStack')?.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-camera-push]');
+      if (!btn) return;
+      pushCameraScreen(btn.dataset.cameraPush || '');
+      haptic('light');
+    });
+  }
+
   function formatCoords(geo) {
     if (!geo || !Number.isFinite(geo.lat) || !Number.isFinite(geo.lng)) return '';
     const ns = geo.lat >= 0 ? 'N' : 'S';
@@ -510,31 +582,58 @@
       list.innerHTML = `
         <div class="camera-clips-card__empty">
           <p><strong>No clips yet</strong></p>
-          <p class="card-sub">Open Camera to record. Swipe up twice when finished to manage clips here.</p>
+          <p class="card-sub">Tap Covert Camera to record. Swipe up twice when finished to return here.</p>
         </div>`;
       updateClipsHubActions();
       await refreshClipSummary();
       return;
     }
 
+    const sorted = [...clips].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const dayGroups = new Map();
+    for (const clip of sorted) {
+      const key = getClipDayKey(clip.createdAt);
+      if (!dayGroups.has(key)) dayGroups.set(key, []);
+      dayGroups.get(key).push(clip);
+    }
+
     list.innerHTML = '';
-    for (const clip of clips) {
-      const url = URL.createObjectURL(clip.blob);
-      clipPreviewUrls.set(clip.id, url);
-      let durationSec = clip.durationSeconds || 0;
-      if (!durationSec) durationSec = await probeBlobDuration(clip.blob);
-      if (
-        Number.isFinite(clip.latitude) &&
-        (!clip.locationLabel || String(clip.locationLabel).includes('°'))
-      ) {
-        const addr = await resolveClipAddress(clip.latitude, clip.longitude);
-        if (addr) clip.locationLabel = addr;
-      }
-      const detailsLine = formatClipDetailsLine(clip, durationSec);
-      const card = document.createElement('article');
-      card.className = 'camera-clip-card';
-      card.setAttribute('role', 'listitem');
-      card.innerHTML = `
+    for (const [, dayClips] of dayGroups) {
+      const heading = formatClipDayHeading(dayClips[0]?.createdAt);
+      const dayKey = getClipDayKey(dayClips[0]?.createdAt);
+      const section = document.createElement('section');
+      section.className = 'camera-clips-day';
+      section.setAttribute('role', 'group');
+      section.setAttribute('aria-labelledby', `clip-day-${dayKey}`);
+
+      const title = document.createElement('h3');
+      title.className = 'camera-clips-day__title';
+      title.id = `clip-day-${dayKey}`;
+      title.textContent = heading;
+      section.appendChild(title);
+
+      const grid = document.createElement('div');
+      grid.className = 'camera-clips-day__grid';
+      grid.setAttribute('role', 'list');
+      section.appendChild(grid);
+
+      for (const clip of dayClips) {
+        const url = URL.createObjectURL(clip.blob);
+        clipPreviewUrls.set(clip.id, url);
+        let durationSec = clip.durationSeconds || 0;
+        if (!durationSec) durationSec = await probeBlobDuration(clip.blob);
+        if (
+          Number.isFinite(clip.latitude) &&
+          (!clip.locationLabel || String(clip.locationLabel).includes('°'))
+        ) {
+          const addr = await resolveClipAddress(clip.latitude, clip.longitude);
+          if (addr) clip.locationLabel = addr;
+        }
+        const detailsLine = formatClipDetailsLine(clip, durationSec);
+        const card = document.createElement('article');
+        card.className = 'camera-clip-card';
+        card.setAttribute('role', 'listitem');
+        card.innerHTML = `
         <input type="checkbox" class="camera-clip-card__check" data-clip-id="${clip.id}" aria-label="Select clip ${clip.id}" />
         <div class="camera-clip-card__thumb">
           <video src="${url}" muted playsinline preload="metadata" aria-hidden="true"></video>
@@ -546,24 +645,27 @@
         <p class="camera-clip-card__sub">${detailsLine}</p>
         <button type="button" class="camera-clip-card__play" data-clip-id="${clip.id}">View</button>`;
 
-      const check = card.querySelector('.camera-clip-card__check');
-      check?.addEventListener('change', () => updateClipsHubActions());
+        const check = card.querySelector('.camera-clip-card__check');
+        check?.addEventListener('change', () => updateClipsHubActions());
 
-      card.querySelector('.camera-clip-card__play')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openClipViewer(clip);
-      });
+        card.querySelector('.camera-clip-card__play')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openClipViewer(clip);
+        });
 
-      card.addEventListener('click', (e) => {
-        if (e.target.closest('.camera-clip-card__play') || e.target.closest('.camera-clip-card__check')) return;
-        if (check) {
-          check.checked = !check.checked;
-          updateClipsHubActions();
-        }
-      });
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.camera-clip-card__play') || e.target.closest('.camera-clip-card__check')) return;
+          if (check) {
+            check.checked = !check.checked;
+            updateClipsHubActions();
+          }
+        });
 
-      list.appendChild(card);
+        grid.appendChild(card);
+      }
+
+      list.appendChild(section);
     }
 
     updateClipsHubActions();
@@ -575,7 +677,15 @@
     leaveCovertMode();
     $('covertCamera')?.classList.add('covert-camera--session-off');
     $('covertClipsHub')?.classList.remove('hidden');
-    renderClipsLibrary();
+    resetCameraNav('clip-library');
+  }
+
+  function showCameraHubRoot() {
+    cameraSessionActive = false;
+    leaveCovertMode();
+    $('covertCamera')?.classList.add('covert-camera--session-off');
+    $('covertClipsHub')?.classList.remove('hidden');
+    resetCameraNav('root');
   }
 
   function openCameraSession() {
@@ -1034,6 +1144,14 @@
     if (sizeEl) sizeEl.textContent = formatBytes(summary.bytes);
     const uploadBtn = $('covertUploadBtn');
     if (uploadBtn) uploadBtn.disabled = summary.count === 0;
+    const navMeta = $('covertClipsNavMeta');
+    if (navMeta) {
+      navMeta.textContent = `${summary.count} clip${summary.count === 1 ? '' : 's'}`;
+    }
+    const listSummary = $('covertClipsSummary');
+    if (listSummary) {
+      listSummary.textContent = `${summary.count} clip${summary.count === 1 ? '' : 's'} · ${formatBytes(summary.bytes)}`;
+    }
   }
 
   async function uploadClips(clipIds) {
@@ -1068,95 +1186,113 @@
   }
 
   async function refreshCameraPermissionUi() {
-    const el = $('cameraPermissionStatus');
-    if (!el) return;
-    if (!navigator.permissions?.query) {
-      el.textContent = 'Use Camera tab — Android will ask for camera permission.';
-      return;
+    const targets = document.querySelectorAll('[data-cam-permission-status]');
+    if (!targets.length) return;
+    let text = 'Use Camera tab — Android will ask for camera permission.';
+    if (navigator.permissions?.query) {
+      try {
+        const cam = await navigator.permissions.query({ name: 'camera' });
+        const mic = await navigator.permissions.query({ name: 'microphone' });
+        text = `Camera: ${cam.state} · Microphone: ${mic.state}`;
+      } catch {
+        text = 'Permission status unavailable — open Camera tab to grant access.';
+      }
     }
-    try {
-      const cam = await navigator.permissions.query({ name: 'camera' });
-      const mic = await navigator.permissions.query({ name: 'microphone' });
-      el.textContent = `Camera: ${cam.state} · Microphone: ${mic.state}`;
-    } catch {
-      el.textContent = 'Permission status unavailable — open Camera tab to grant access.';
-    }
+    targets.forEach((el) => {
+      el.textContent = text;
+    });
   }
 
   function bindSettings() {
     if (window.__cameraSettingsBound) return;
     window.__cameraSettingsBound = true;
 
-    $('cameraOpenAppSettingsBtn')?.addEventListener('click', () => {
-      haptic('light');
-      window.alert(
-        'Android: Settings → Apps → Toolbox (or Chrome) → Permissions → Camera & Microphone.\n\n' +
-          'Chrome: ⋮ → Settings → Site settings → Camera / Microphone → Allow for this site.'
-      );
+    document.querySelectorAll('[data-cam-action="perm-help"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        haptic('light');
+        window.alert(
+          'Android: Settings → Apps → Toolbox (or Chrome) → Permissions → Camera & Microphone.\n\n' +
+            'Chrome: ⋮ → Settings → Site settings → Camera / Microphone → Allow for this site.'
+        );
+      });
     });
 
-    $('cameraWakeLockSwitch')?.addEventListener('change', (e) => {
-      const prefs = getPrefs();
-      prefs.wakeLock = e.target.checked;
-      savePrefs(prefs);
-      syncCameraSettingsUi();
-      haptic('light');
+    document.querySelectorAll('[data-cam-pref="wakeLock"]').forEach((input) => {
+      input.addEventListener('change', (e) => {
+        const prefs = getPrefs();
+        prefs.wakeLock = e.target.checked;
+        savePrefs(prefs);
+        syncCameraSettingsUi();
+        haptic('light');
+      });
     });
 
-    $('cameraStrongHapticSwitch')?.addEventListener('change', (e) => {
-      const prefs = getPrefs();
-      prefs.strongHapticOnRecord = e.target.checked;
-      savePrefs(prefs);
-      syncCameraSettingsUi();
-      haptic('light');
+    document.querySelectorAll('[data-cam-pref="strongHapticOnRecord"]').forEach((input) => {
+      input.addEventListener('change', (e) => {
+        const prefs = getPrefs();
+        prefs.strongHapticOnRecord = e.target.checked;
+        savePrefs(prefs);
+        syncCameraSettingsUi();
+        haptic('light');
+      });
     });
 
-    $('cameraMaxClipSelect')?.addEventListener('change', (e) => {
-      const prefs = getPrefs();
-      prefs.maxClipMinutes = parseInt(e.target.value, 10) || 0;
-      savePrefs(prefs);
-      haptic('light');
+    document.querySelectorAll('[data-cam-max-minutes]').forEach((select) => {
+      select.addEventListener('change', (e) => {
+        const prefs = getPrefs();
+        prefs.maxClipMinutes = parseInt(e.target.value, 10) || 0;
+        savePrefs(prefs);
+        syncCameraSettingsUi();
+        haptic('light');
+      });
     });
 
-    $('cameraClearClipsBtn')?.addEventListener('click', async () => {
-      if (!window.confirm('Delete all covert clips saved in Toolbox on this device?')) return;
-      await clearAllClips();
-      await refreshClipSummary();
-      refreshCameraSettingsUi();
-      haptic('medium');
+    document.querySelectorAll('[data-cam-action="clear-all"]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!window.confirm('Delete all covert clips saved in Toolbox on this device?')) return;
+        await clearAllClips();
+        await refreshClipSummary();
+        await renderClipsLibrary();
+        refreshCameraSettingsUi();
+        haptic('medium');
+      });
     });
 
-    $('cameraUploadAllBtn')?.addEventListener('click', () => uploadClips());
+    document.querySelectorAll('[data-cam-action="upload-all"]').forEach((btn) => {
+      btn.addEventListener('click', () => uploadClips());
+    });
   }
 
   function syncCameraSettingsUi() {
     const prefs = getPrefs();
-    const wake = $('cameraWakeLockSwitch');
-    const strong = $('cameraStrongHapticSwitch');
-    const maxSel = $('cameraMaxClipSelect');
-    if (wake) wake.checked = !!prefs.wakeLock;
-    if (strong) strong.checked = !!prefs.strongHapticOnRecord;
-    if (maxSel) maxSel.value = String(prefs.maxClipMinutes ?? 10);
-    if (typeof window.syncToggleStateLabel === 'function') {
-      window.syncToggleStateLabel(wake);
-      window.syncToggleStateLabel(strong);
-    }
+    document.querySelectorAll('[data-cam-pref="wakeLock"]').forEach((input) => {
+      input.checked = !!prefs.wakeLock;
+      if (typeof window.syncToggleStateLabel === 'function') window.syncToggleStateLabel(input);
+    });
+    document.querySelectorAll('[data-cam-pref="strongHapticOnRecord"]').forEach((input) => {
+      input.checked = !!prefs.strongHapticOnRecord;
+      if (typeof window.syncToggleStateLabel === 'function') window.syncToggleStateLabel(input);
+    });
+    document.querySelectorAll('[data-cam-max-minutes]').forEach((select) => {
+      select.value = String(prefs.maxClipMinutes ?? 10);
+    });
   }
 
   async function refreshCameraSettingsUi() {
     syncCameraSettingsUi();
     await refreshCameraPermissionUi();
     const summary = await getStorageSummary();
-    const el = $('cameraStorageSummary');
-    if (el) {
-      el.textContent =
-        `${summary.count} clip(s) · ${formatBytes(summary.bytes)} — Camera tab → swipe up twice for library & OneDrive.`;
-    }
+    const storageText =
+      `${summary.count} clip(s) · ${formatBytes(summary.bytes)} — Clip Library on Camera tab for view & OneDrive.`;
+    document.querySelectorAll('[data-cam-storage-summary]').forEach((el) => {
+      el.textContent = storageText;
+    });
   }
 
   function bindUi() {
     if (window.__covertCameraUiBound) return;
     window.__covertCameraUiBound = true;
+    bindCameraNav();
 
     const zone = $('covertTapZone');
     zone?.addEventListener('click', onTapZone);
@@ -1227,7 +1363,7 @@
 
     // Saved clips first — only enter live/fullscreen after "Open camera" (cameraSessionActive).
     if (!cameraSessionActive) {
-      showClipsHub();
+      showCameraHubRoot();
       return;
     }
 
@@ -1254,6 +1390,7 @@
     forceExitCovertUi();
     revokeClipPreviewUrls();
     $('covertClipsHub')?.classList.add('hidden');
+    resetCameraNav('root');
   }
 
   function init() {
@@ -1273,6 +1410,10 @@
     refreshClipSummary,
     renderClipsLibrary,
     showClipsHub,
+    showCameraHubRoot,
+    pushCameraScreen,
+    popCameraScreen,
+    resetCameraNav,
     forceExitCovertUi,
   };
 
