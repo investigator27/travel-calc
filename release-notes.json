@@ -1,12 +1,37 @@
 {
-  "latest": "v128",
+  "latest": "v130",
   "appVersion": "3.5.4",
   "highlights": [
-    "Install page QR code renders reliably again (CDN + fallback image)."
+    "Install page QR white frame fits the code (less side padding)."
   ],
   "builds": {
+    "v130": {
+      "intro": "Build v130 — install page QR layout.",
+      "sections": [
+        {
+          "heading": "Install",
+          "items": [
+            "QR white background is sized to the code instead of stretching full width.",
+            "Deploy index.html, service-worker.js, and release-notes.json (v130)."
+          ]
+        }
+      ]
+    },
+    "v129": {
+      "intro": "Build v129 — version labels show deploy build (v129) in Software Update and What's New.",
+      "sections": [
+        {
+          "heading": "Updates",
+          "items": [
+            "Update card title uses build v129 (each deploy bumps v130, v131, …).",
+            "Product version stays 3.5.4 until a major release; build number is what changes each upload.",
+            "Deploy surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v129)."
+          ]
+        }
+      ]
+    },
     "v128": {
-      "intro": "Investigator Toolbox 3.5.4 — install QR fix.",
+      "intro": "Build v128 — install QR fix.",
       "sections": [
         {
           "heading": "Install",
@@ -18,7 +43,7 @@
       ]
     },
     "v127": {
-      "intro": "Investigator Toolbox 3.5.4 — launch after PWA install.",
+      "intro": "Build v127 — launch after PWA install.",
       "sections": [
         {
           "heading": "Install",
@@ -31,7 +56,7 @@
       ]
     },
     "v126": {
-      "intro": "Investigator Toolbox 3.5.4 — desktop browser picker on install page.",
+      "intro": "Build v126 — desktop browser picker on install page.",
       "sections": [
         {
           "heading": "Install",
@@ -44,7 +69,7 @@
       ]
     },
     "v125": {
-      "intro": "Investigator Toolbox 3.5.4 — Android install prompt fix.",
+      "intro": "Build v125 — Android install prompt fix.",
       "sections": [
         {
           "heading": "Install",
@@ -57,7 +82,7 @@
       ]
     },
     "v124": {
-      "intro": "Investigator Toolbox 3.5.4 — simpler install page.",
+      "intro": "Build v124 — simpler install page.",
       "sections": [
         {
           "heading": "Install",
@@ -70,7 +95,7 @@
       ]
     },
     "v123": {
-      "intro": "Investigator Toolbox 3.5.4 — Android-only install rollout.",
+      "intro": "Build v123 — Android-only install rollout.",
       "sections": [
         {
           "heading": "Install",

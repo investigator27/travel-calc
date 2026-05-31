@@ -99,19 +99,21 @@
     }
     .card h2 { font-size: var(--text-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); }
     .qr-wrap{
-      display:flex;
+      display:inline-flex;
       justify-content:center;
       align-items:center;
-      min-height:240px;
-      width:100%;
-      padding:var(--space-3);
+      width:fit-content;
+      max-width:100%;
+      margin:0 auto;
+      padding:0.5rem;
       border-radius:var(--radius-lg);
       background:#fff;
+      line-height:0;
     }
     #qrCanvas, .qr-img{
       display:block;
-      width:240px;
-      max-width:100%;
+      width:min(240px, calc(100vw - 5rem));
+      height:auto;
       aspect-ratio:1;
     }
     .btn {

@@ -1915,7 +1915,7 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   const BUNDLED_APP_VERSION = '3.5.4';
-  const BUNDLED_PWA_CACHE_VERSION = 'v128';
+  const BUNDLED_PWA_CACHE_VERSION = 'v130';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -2084,14 +2084,8 @@
   }
 
   async function getUpdateCardVersionLabel(build) {
-    const manifest = await loadReleaseNotesManifest();
-    const notes = manifest?.builds?.[build];
-    if (notes?.intro) {
-      const match = String(notes.intro).match(/(\d+\.\d+\.\d+)/);
-      if (match) return match[1];
-    }
-    if (pendingUpdateBuild && manifest?.appVersion) return manifest.appVersion;
-    return APP_VERSION;
+    const id = String(build || PWA_CACHE_VERSION || BUNDLED_PWA_CACHE_VERSION || '').trim();
+    return id || APP_VERSION;
   }
 
   async function getUpdateCardSummary(build) {
@@ -2106,7 +2100,7 @@
   async function refreshSwUpdateCardCopy(state) {
     const build = getDisplayUpdateBuild();
     const versionNum = await getUpdateCardVersionLabel(build);
-    if (swUpdateTitle) swUpdateTitle.textContent = `Toolbox ${versionNum}`;
+    if (swUpdateTitle) swUpdateTitle.textContent = `Toolbox · ${versionNum}`;
     if (swUpdateMeta) {
       swUpdateMeta.textContent = state === 'ready'
         ? `Build ${build} · Ready to install`
@@ -2540,11 +2534,13 @@
   }
 
   function formatAppVersionLabel() {
-    return `Version ${APP_VERSION}`;
+    const build = getDisplayUpdateBuild();
+    return build ? `Version ${APP_VERSION} · ${build}` : `Version ${APP_VERSION}`;
   }
 
   function getShortVersionLabel() {
-    return `v${APP_VERSION}`;
+    const build = getDisplayUpdateBuild();
+    return build ? `${build} (${APP_VERSION})` : `v${APP_VERSION}`;
   }
 
   function getFooterVersionLine() {
@@ -2587,6 +2583,7 @@
       if (!response.ok) return;
       const data = await response.json();
       if (data.latest) remoteLatestBuild = data.latest;
+      if (data.appVersion) APP_VERSION = String(data.appVersion).trim() || APP_VERSION;
       syncTargetBuildFromBundledAndRemote();
       refreshAllVersionDisplays();
     } catch {
@@ -3828,6 +3825,7 @@
 
   function getStandardDeployFiles(includeWorker) {
     const files = [
+      'index.html',
       'surveillance-travel-calculator.html',
       'service-worker.js',
       'release-notes.json',
