@@ -1,10 +1,23 @@
 {
-  "latest": "v121",
+  "latest": "v122",
   "appVersion": "3.5.4",
   "highlights": [
-    "Install landing page with QR at investigator27.github.io/investigator-toolbox/."
+    "Install page: always shows Install button, fixes service worker, clearer iPhone/Android steps."
   ],
   "builds": {
+    "v122": {
+      "intro": "Investigator Toolbox 3.5.4 — install page fixes.",
+      "sections": [
+        {
+          "heading": "Install",
+          "items": [
+            "Install page always shows Install on this phone; tap for steps when the browser does not offer a one-tap install.",
+            "Fixed service worker registration on the install page (required for Android Install app).",
+            "Deploy index.html, surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v122)."
+          ]
+        }
+      ]
+    },
     "v121": {
       "intro": "Investigator Toolbox 3.5.4 — install page for company rollout.",
       "sections": [
