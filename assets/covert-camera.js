@@ -359,6 +359,13 @@
     setBlackVisible(true);
   }
 
+  function exitFullscreenIfNeeded() {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+    } catch {}
+    usedFullscreenForOrientation = false;
+  }
+
   function leaveCovertMode() {
     const tab = $('tab-camera');
     tab?.classList.remove('tab-panel--camera-active');
@@ -368,6 +375,19 @@
     hidePreview();
     showPermissionGate(false);
     setPermissionError('');
+    exitFullscreenIfNeeded();
+  }
+
+  function forceExitCovertUi() {
+    closeClipViewer();
+    clearHud();
+    hidePreview();
+    swipeUpCount = 0;
+    clearTimeout(swipeUpResetTimer);
+    unlockLandscape();
+    exitFullscreenIfNeeded();
+    leaveCovertMode();
+    $('covertCamera')?.classList.add('covert-camera--session-off');
   }
 
   function revokeClipPreviewUrls() {
@@ -599,19 +619,6 @@
       startOrientationWatch();
       return true;
     }
-
-    const el = $('covertCamera') || document.documentElement;
-    try {
-      if (!document.fullscreenElement && el.requestFullscreen) {
-        await el.requestFullscreen();
-        usedFullscreenForOrientation = true;
-      }
-    } catch {}
-
-    if (await tryLock()) {
-      startOrientationWatch();
-      return true;
-    }
     return false;
   }
 
@@ -633,12 +640,7 @@
     try {
       screen.orientation?.unlock?.();
     } catch {}
-    if (usedFullscreenForOrientation && document.fullscreenElement) {
-      try {
-        document.exitFullscreen();
-      } catch {}
-    }
-    usedFullscreenForOrientation = false;
+    exitFullscreenIfNeeded();
   }
 
   async function enforceLandscapeVideoTrack(stream) {
@@ -1187,16 +1189,10 @@
     if (isRecording) stopRecording();
     stopCameraStream();
     releaseWakeLock();
-    clearHud();
-    swipeUpCount = 0;
-    clearTimeout(swipeUpResetTimer);
     cameraSessionActive = false;
-    leaveCovertMode();
-    closeClipViewer();
+    forceExitCovertUi();
     revokeClipPreviewUrls();
-    $('covertCamera')?.classList.add('covert-camera--session-off');
     $('covertClipsHub')?.classList.add('hidden');
-    unlockLandscape();
   }
 
   function init() {
