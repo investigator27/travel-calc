@@ -1,11 +1,38 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v183",
-  "appVersion": "3.5.52",
+  "latest": "v185",
+  "appVersion": "3.5.54",
   "highlights": [
-    "Clip Library uses Covert Camera hub layout with per-day nav rows; Camera Settings matches between Camera tab and Toolbox Settings."
+    "Camera Settings from the Camera tab opens the full Settings overlay; Back returns to the Camera tab."
   ],
   "builds": {
+    "v185": {
+      "intro": "Build v185 — Camera Settings opens Settings overlay from Camera tab.",
+      "sections": [
+        {
+          "heading": "Camera tab",
+          "items": [
+            "Camera Settings uses the same full-screen Settings overlay as Toolbox → Settings → Camera.",
+            "Back closes the overlay and returns to the Covert Camera hub on the Camera tab.",
+            "Removed duplicate inline Camera Settings page on the tab.",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v185)."
+          ]
+        }
+      ]
+    },
+    "v184": {
+      "intro": "Build v184 — Clip day view and Camera Settings spacing parity.",
+      "sections": [
+        {
+          "heading": "Fixes",
+          "items": [
+            "Day clips: no nested group around grid; Actions holds Select all, Send, and Delete with hub spacing.",
+            "Camera tab Camera Settings uses the same camera-settings-body layout as Toolbox Settings.",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v184)."
+          ]
+        }
+      ]
+    },
     "v183": {
       "intro": "Build v183 — Clip Library hub-style days; unified Camera Settings.",
       "sections": [

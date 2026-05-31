@@ -292,29 +292,36 @@
       margin-top:0;
       margin-bottom:var(--space-2);
     }
-    .camera-hub-card__btn-stack{
+    .camera-hub-block__actions{
       display:grid;
       gap:var(--space-2);
-      padding:var(--space-3) var(--space-4) var(--space-4);
     }
-    .camera-hub-card__btn-stack .btn{width:100%;min-height:50px}
-    .camera-hub-card__clips-pad{
-      padding:var(--space-3) var(--space-4) var(--space-4);
+    .camera-hub-block__actions .btn{width:100%;min-height:50px}
+    .camera-settings-body > .settings-page-intro{margin-bottom:var(--space-5)}
+    .camera-settings-body > .settings-permission-hint{
+      margin:0 0 var(--space-5);
+      padding-left:var(--space-1);
+    }
+    .camera-settings-body > .settings-section-title{
+      margin:0 0 var(--space-2);
+      padding-left:var(--space-1);
+    }
+    .camera-settings-body > .settings-section-title:not(:first-child){
+      margin-top:var(--space-5);
+    }
+    .camera-settings-body > .settings-group + .settings-section-title,
+    .camera-settings-body > .settings-actions + .settings-section-title{
+      margin-top:var(--space-5);
+    }
+    .camera-settings-body > .settings-actions{
+      padding:0 0 var(--space-4);
     }
     .camera-clips-card__empty--hub{
       padding:var(--space-5) var(--space-4);
       text-align:center;
     }
     .camera-clips-card__empty--hub .card-sub{margin-top:var(--space-2)}
-    .camera-hub-card > .settings-page-intro.camera-hub-card__intro{
-      margin-bottom:var(--space-5);
-    }
-    .camera-hub-card > .settings-permission-hint{
-      margin:0 0 var(--space-5);
-      padding-left:var(--space-1);
-    }
-    .camera-hub-card > .settings-permission-hint + .camera-hub-block,
-    .camera-hub-card > .settings-page-intro + .camera-hub-block{
+    #covertClipsDayView > .camera-hub-card__intro + .camera-hub-block{
       margin-top:var(--space-5);
     }
     #covertClipsDayList > .camera-hub-block:first-child{
@@ -1636,107 +1643,20 @@
               <p class="card-sub" id="covertClipsDaySummary">0 clips</p>
             </div>
             <div class="camera-hub-block">
-              <h2 class="settings-section-title">Selection</h2>
-              <div class="settings-group">
-                <div class="camera-hub-card__btn-stack">
-                  <button type="button" class="btn btn-secondary" id="covertClipsSelectAllBtn">Select all</button>
-                </div>
-              </div>
-            </div>
-            <div class="camera-hub-block">
               <h2 class="settings-section-title">Clips</h2>
-              <div class="settings-group">
-                <div class="camera-hub-card__clips-pad">
-                  <div class="camera-clips-day__grid" id="covertClipsList" role="list"></div>
-                </div>
-              </div>
+              <div class="camera-clips-day__grid" id="covertClipsList" role="list"></div>
             </div>
             <div class="camera-hub-block">
               <h2 class="settings-section-title">Actions</h2>
-              <div class="settings-group">
-                <div class="camera-hub-card__btn-stack">
-                  <button type="button" class="btn btn-primary" id="covertClipsSendBtn" disabled>Send to OneDrive</button>
-                  <button type="button" class="btn btn-secondary" id="covertClipsDeleteBtn" disabled>Delete selected</button>
-                </div>
+              <div class="camera-hub-block__actions">
+                <button type="button" class="btn btn-secondary" id="covertClipsSelectAllBtn">Select all</button>
+                <button type="button" class="btn btn-primary" id="covertClipsSendBtn" disabled>Send to OneDrive</button>
+                <button type="button" class="btn btn-secondary" id="covertClipsDeleteBtn" disabled>Delete selected</button>
               </div>
             </div>
           </div>
         </section>
 
-        <section class="card camera-hub-card hidden" id="cameraPanelSettings" data-camera-panel="camera-settings" aria-labelledby="camera-settings-intro-title" hidden>
-          <button type="button" class="settings-back camera-hub-card__back" data-camera-pop aria-label="Back to Covert Camera">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
-          </button>
-          <section class="settings-page-intro camera-hub-card__intro" aria-labelledby="camera-settings-intro-title">
-            <div class="settings-page-intro__inner">
-              <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></span>
-              <div class="settings-page-intro__text">
-                <h1 class="settings-page-intro__title" id="camera-settings-intro-title">Camera Settings</h1>
-                <p class="settings-page-intro__blurb">Covert video — rear camera, landscape. Clips stay inside Toolbox until you upload or export.</p>
-              </div>
-            </div>
-          </section>
-          <p class="settings-permission-hint" data-cam-permission-status aria-live="polite">Checking…</p>
-          <p class="settings-permission-hint" data-cam-storage-summary aria-live="polite"></p>
-          <div class="camera-hub-block">
-            <h2 class="settings-section-title">Recording</h2>
-            <div class="settings-group" role="group" aria-label="Recording">
-              <div class="settings-row settings-row--toggle">
-                <span class="settings-row__label">Keep screen on while recording</span>
-                <label class="settings-switch"><input type="checkbox" data-cam-pref="wakeLock" checked aria-label="Keep screen on while recording" /><span class="settings-switch__track"></span></label>
-              </div>
-              <div class="settings-row settings-row--toggle">
-                <span class="settings-row__label">Strong haptic on start/stop</span>
-                <label class="settings-switch"><input type="checkbox" data-cam-pref="strongHapticOnRecord" checked aria-label="Stronger haptic on record start and stop" /><span class="settings-switch__track"></span></label>
-              </div>
-            </div>
-          </div>
-          <div class="camera-hub-block">
-            <h2 class="settings-section-title">Max clip length</h2>
-            <div class="settings-group">
-              <div class="field" style="padding:var(--space-3) var(--space-4)">
-                <label for="cameraTabMaxClipSelect">Max clip length</label>
-                <select id="cameraTabMaxClipSelect" class="city-btn" data-cam-max-minutes style="width:100%;min-height:48px">
-                  <option value="5">5 minutes</option>
-                  <option value="10" selected>10 minutes</option>
-                  <option value="20">20 minutes</option>
-                  <option value="30">30 minutes</option>
-                  <option value="0">No limit</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="camera-hub-block">
-            <h2 class="settings-section-title">Storage</h2>
-            <div class="settings-group">
-              <div class="camera-hub-card__btn-stack">
-                <button type="button" class="btn btn-primary" data-cam-action="upload-all">Upload clips to OneDrive</button>
-                <button type="button" class="btn btn-secondary" data-cam-action="clear-all">Delete all clips on this device</button>
-                <button type="button" class="btn btn-secondary" data-cam-action="perm-help">Camera permission help</button>
-              </div>
-            </div>
-          </div>
-          <div class="camera-hub-block">
-            <h2 class="settings-section-title">Help</h2>
-            <div class="settings-group">
-              <div class="settings-body-text">
-                <p><strong>Controls</strong></p>
-                <ol class="steps-list">
-                  <li>3 taps on the black area — start recording (screen stays black).</li>
-                  <li>3 taps again — stop; clip saved as 00000, 00001, …</li>
-                  <li>Swipe up — live preview · Swipe down — hide preview.</li>
-                  <li>Swipe up twice (after stop) — opens that day’s clips.</li>
-                </ol>
-                <p><strong>Notes</strong></p>
-                <ul class="steps-list">
-                  <li>Android shows a camera indicator while recording — cannot be hidden.</li>
-                  <li>Upload opens Share — choose OneDrive; not automatic.</li>
-                  <li>Enable Haptic feedback under Personalization for tap pulses.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
       </div>
       <div class="camera-clip-viewer hidden" id="covertClipViewer" aria-hidden="true">
         <div class="camera-clip-viewer__stage">
@@ -2281,63 +2201,65 @@
 
       <div class="settings-screen" data-screen="camera-settings" aria-hidden="true">
         <div class="settings-scroll settings-scroll--subpage">
-          <section class="settings-page-intro" aria-labelledby="settings-camera-intro-title">
-            <div class="settings-page-intro__inner">
-              <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></span>
-              <div class="settings-page-intro__text">
-                <h1 class="settings-page-intro__title" id="settings-camera-intro-title">Camera Settings</h1>
-                <p class="settings-page-intro__blurb">Covert video — rear camera, landscape. Clips stay inside Toolbox until you upload or export.</p>
+          <div class="camera-settings-body">
+            <section class="settings-page-intro" aria-labelledby="settings-camera-intro-title">
+              <div class="settings-page-intro__inner">
+                <span class="settings-page-intro__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></span>
+                <div class="settings-page-intro__text">
+                  <h1 class="settings-page-intro__title" id="settings-camera-intro-title">Camera Settings</h1>
+                  <p class="settings-page-intro__blurb">Covert video — rear camera, landscape. Clips stay inside Toolbox until you upload or export.</p>
+                </div>
+              </div>
+            </section>
+            <p class="settings-permission-hint" id="cameraPermissionStatus" data-cam-permission-status aria-live="polite">Checking…</p>
+            <p class="settings-permission-hint" id="cameraStorageSummary" data-cam-storage-summary aria-live="polite"></p>
+            <h2 class="settings-section-title">Recording</h2>
+            <div class="settings-group" role="group" aria-label="Recording">
+              <div class="settings-row settings-row--toggle">
+                <span class="settings-row__label">Keep screen on while recording</span>
+                <label class="settings-switch"><input type="checkbox" id="cameraWakeLockSwitch" data-cam-pref="wakeLock" checked aria-label="Keep screen on while recording" /><span class="settings-switch__track"></span></label>
+              </div>
+              <div class="settings-row settings-row--toggle">
+                <span class="settings-row__label">Strong haptic on start/stop</span>
+                <label class="settings-switch"><input type="checkbox" id="cameraStrongHapticSwitch" data-cam-pref="strongHapticOnRecord" checked aria-label="Stronger haptic on record start and stop" /><span class="settings-switch__track"></span></label>
               </div>
             </div>
-          </section>
-          <p class="settings-permission-hint" id="cameraPermissionStatus" data-cam-permission-status aria-live="polite">Checking…</p>
-          <p class="settings-permission-hint" id="cameraStorageSummary" data-cam-storage-summary aria-live="polite"></p>
-          <h2 class="settings-section-title">Recording</h2>
-          <div class="settings-group" role="group" aria-label="Recording">
-            <div class="settings-row settings-row--toggle">
-              <span class="settings-row__label">Keep screen on while recording</span>
-              <label class="settings-switch"><input type="checkbox" id="cameraWakeLockSwitch" data-cam-pref="wakeLock" checked aria-label="Keep screen on while recording" /><span class="settings-switch__track"></span></label>
+            <h2 class="settings-section-title">Max clip length</h2>
+            <div class="settings-group">
+              <div class="field" style="padding:var(--space-3) var(--space-4)">
+                <label for="cameraMaxClipSelect">Max clip length</label>
+                <select id="cameraMaxClipSelect" class="city-btn" data-cam-max-minutes style="width:100%;min-height:48px">
+                  <option value="5">5 minutes</option>
+                  <option value="10" selected>10 minutes</option>
+                  <option value="20">20 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="0">No limit</option>
+                </select>
+              </div>
             </div>
-            <div class="settings-row settings-row--toggle">
-              <span class="settings-row__label">Strong haptic on start/stop</span>
-              <label class="settings-switch"><input type="checkbox" id="cameraStrongHapticSwitch" data-cam-pref="strongHapticOnRecord" checked aria-label="Stronger haptic on record start and stop" /><span class="settings-switch__track"></span></label>
+            <h2 class="settings-section-title">Storage</h2>
+            <div class="settings-actions">
+              <button type="button" class="btn btn-primary" id="cameraUploadAllBtn" data-cam-action="upload-all">Upload clips to OneDrive</button>
+              <button type="button" class="btn btn-secondary" id="cameraClearClipsBtn" data-cam-action="clear-all">Delete all clips on this device</button>
+              <button type="button" class="btn btn-secondary" id="cameraOpenAppSettingsBtn" data-cam-action="perm-help">Camera permission help</button>
             </div>
-          </div>
-          <h2 class="settings-section-title">Max clip length</h2>
-          <div class="settings-group">
-            <div class="field" style="padding:var(--space-3) var(--space-4)">
-              <label for="cameraMaxClipSelect">Max clip length</label>
-              <select id="cameraMaxClipSelect" class="city-btn" data-cam-max-minutes style="width:100%;min-height:48px">
-                <option value="5">5 minutes</option>
-                <option value="10" selected>10 minutes</option>
-                <option value="20">20 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="0">No limit</option>
-              </select>
-            </div>
-          </div>
-          <h2 class="settings-section-title">Storage</h2>
-          <div class="settings-actions">
-            <button type="button" class="btn btn-primary" id="cameraUploadAllBtn" data-cam-action="upload-all">Upload clips to OneDrive</button>
-            <button type="button" class="btn btn-secondary" id="cameraClearClipsBtn" data-cam-action="clear-all">Delete all clips on this device</button>
-            <button type="button" class="btn btn-secondary" id="cameraOpenAppSettingsBtn" data-cam-action="perm-help">Camera permission help</button>
-          </div>
-          <h2 class="settings-section-title">Help</h2>
-          <div class="settings-group">
-            <div class="settings-body-text">
-              <p><strong>Controls</strong></p>
-              <ol class="steps-list">
-                <li>3 taps on the black area — start recording (screen stays black).</li>
-                <li>3 taps again — stop; clip saved as 00000, 00001, …</li>
-                <li>Swipe up — live preview · Swipe down — hide preview.</li>
-                <li>Swipe up twice (after stop) — opens that day’s clips.</li>
-              </ol>
-              <p><strong>Notes</strong></p>
-              <ul class="steps-list">
-                <li>Android shows a camera indicator while recording — cannot be hidden.</li>
-                <li>Upload opens Share — choose OneDrive; not automatic.</li>
-                <li>Enable Haptic feedback under Personalization for tap pulses.</li>
-              </ul>
+            <h2 class="settings-section-title">Help</h2>
+            <div class="settings-group">
+              <div class="settings-body-text">
+                <p><strong>Controls</strong></p>
+                <ol class="steps-list">
+                  <li>3 taps on the black area — start recording (screen stays black).</li>
+                  <li>3 taps again — stop; clip saved as 00000, 00001, …</li>
+                  <li>Swipe up — live preview · Swipe down — hide preview.</li>
+                  <li>Swipe up twice (after stop) — opens that day’s clips.</li>
+                </ol>
+                <p><strong>Notes</strong></p>
+                <ul class="steps-list">
+                  <li>Android shows a camera indicator while recording — cannot be hidden.</li>
+                  <li>Upload opens Share — choose OneDrive; not automatic.</li>
+                  <li>Enable Haptic feedback under Personalization for tap pulses.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -2580,7 +2502,7 @@
   </div>
 </div>
 
-<script src="assets/covert-camera.js?v=183" onerror="window.__covertCameraLoadFailed=true"></script>
+<script src="assets/covert-camera.js?v=185" onerror="window.__covertCameraLoadFailed=true"></script>
 <script>
 (() => {
   const doc = document;
@@ -2602,8 +2524,8 @@
   const statusBox = $('statusBox');
   const resultsSection = $('resultsSection');
   /** Keep in sync each deploy: release-notes.json appVersion + latest, and service-worker.js activeCacheName. */
-  const BUNDLED_APP_VERSION = '3.5.52';
-  const BUNDLED_PWA_CACHE_VERSION = 'v183';
+  const BUNDLED_APP_VERSION = '3.5.54';
+  const BUNDLED_PWA_CACHE_VERSION = 'v185';
   let APP_VERSION = BUNDLED_APP_VERSION;
   const IS_LOCAL_DEV = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
   const PWA_TEST_MODE = localStorage.getItem('toolboxPwaTest') === '1'
@@ -2640,6 +2562,7 @@
   const settingsBackBtn = $('settingsBackBtn');
   const settingsUpdateBadge = $('settingsUpdateBadge');
   let settingsNavStack = ['root'];
+  let settingsOpenedFromCameraTab = false;
   const settingsVersionLine = $('settingsVersionLine');
   const settingsCheckUpdateBtn = $('settingsCheckUpdateBtn');
   const settingsPwaTestBtn = $('settingsPwaTestBtn');
@@ -4635,11 +4558,17 @@
   function paintSettingsScreens() {
     if (!settingsStack) return;
     const activeId = settingsNavStack[settingsNavStack.length - 1] || 'root';
-    const isSub = settingsNavStack.length > 1;
+    const isSub = settingsNavStack.length > 1 || settingsOpenedFromCameraTab;
     const updateFlow = settingsNavStack.includes('updates') || settingsNavStack.includes('update-whats-new');
     settingsStack.classList.toggle('settings-stack--update-flow', updateFlow);
     settingsOverlay?.classList.toggle('is-subpage', isSub);
-    if (settingsBackBtn) settingsBackBtn.setAttribute('aria-label', isSub ? 'Back' : 'Close settings');
+    if (settingsBackBtn) {
+      if (settingsOpenedFromCameraTab) {
+        settingsBackBtn.setAttribute('aria-label', 'Back to Camera');
+      } else {
+        settingsBackBtn.setAttribute('aria-label', isSub ? 'Back' : 'Close settings');
+      }
+    }
     qsa('.settings-screen', settingsStack).forEach((screen) => {
       const id = screen.dataset.screen || '';
       const isActive = id === activeId;
@@ -4711,15 +4640,22 @@
 
   function resetSettingsNav() {
     settingsNavStack = ['root'];
+    settingsOpenedFromCameraTab = false;
     paintSettingsScreens();
   }
 
   function openSettings(screenId, opts = {}) {
     if (!settingsOverlay) return;
     const postUpdate = opts.postUpdate === true;
+    const fromCameraTab = opts.fromCameraTab === true && screenId === 'camera-settings';
+    settingsOpenedFromCameraTab = fromCameraTab;
     if (postUpdate && screenId === 'updates') {
       settingsNavStack = ['root', 'updates'];
+    } else if (fromCameraTab) {
+      settingsNavStack = ['camera-settings'];
+      window.__toolboxTabsCore?.switchTab?.('camera');
     } else {
+      settingsOpenedFromCameraTab = false;
       resetSettingsNav();
     }
     settingsOverlay.classList.remove('hidden');
@@ -4740,8 +4676,13 @@
       if (postUpdate && screenId === 'updates') {
         paintSettingsScreens();
         bindSoftwareUpdateActions();
+      } else if (fromCameraTab) {
+        paintSettingsScreens();
+        window.ToolboxCovertCamera?.refreshCameraSettingsUi?.();
       } else if (screenId && screenId !== 'root') {
         pushSettingsScreen(screenId);
+      } else {
+        paintSettingsScreens();
       }
     };
     if (opts.instant || postUpdate) {
@@ -4754,6 +4695,8 @@
   function closeSettings() {
     if (!settingsOverlay) return;
     const wasPostUpdate = settingsOverlay.classList.contains('settings-overlay--post-update');
+    const returnToCameraTab = settingsOpenedFromCameraTab;
+    settingsOpenedFromCameraTab = false;
     settingsOverlay.classList.remove('is-open', 'is-subpage', 'settings-overlay--post-update');
     if (wasPostUpdate) {
       quietUpdateLoad = false;
@@ -4767,6 +4710,10 @@
       settingsOverlay.setAttribute('aria-hidden', 'true');
       resetSettingsNav();
       refreshSettingsUpdateBadge();
+      if (returnToCameraTab) {
+        window.__toolboxTabsCore?.switchTab?.('camera');
+        window.ToolboxCovertCamera?.showCameraHubRoot?.();
+      }
     };
     if (!sheet) {
       finish();
@@ -5374,7 +5321,7 @@ $('summaryNote').textContent =
     if (event.target === settingsOverlay) closeSettings();
   });
   settingsBackBtn?.addEventListener('click', () => {
-    if (settingsNavStack.length <= 1) closeSettings();
+    if (settingsOpenedFromCameraTab || settingsNavStack.length <= 1) closeSettings();
     else popSettingsScreen();
   });
   settingsStack?.addEventListener('click', (event) => {
