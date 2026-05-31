@@ -1,11 +1,25 @@
 {
   "_deploy": "Bump latest + appVersion here, BUNDLED_* in surveillance-travel-calculator.html, activeCacheName in service-worker.js — every deploy.",
-  "latest": "v170",
-  "appVersion": "3.5.39",
+  "latest": "v171",
+  "appVersion": "3.5.40",
   "highlights": [
-    "Smoother post-update reload — no Calculator flash before up-to-date screen."
+    "Camera fullscreen black screen again; horizontal clip playback; Open Camera label."
   ],
   "builds": {
+    "v171": {
+      "intro": "Build v171 — camera fullscreen and playback.",
+      "sections": [
+        {
+          "heading": "Fixes",
+          "items": [
+            "Open Camera fills the screen (tabs hidden only during live camera, not elsewhere).",
+            "Double swipe up still exits to clips library and normal tabs.",
+            "View playback uses landscape layout; Settings/update layers unchanged.",
+            "Deploy surveillance-travel-calculator.html, assets/covert-camera.js, service-worker.js, release-notes.json (v171)."
+          ]
+        }
+      ]
+    },
     "v170": {
       "intro": "Build v170 — post-update flash fix.",
       "sections": [
