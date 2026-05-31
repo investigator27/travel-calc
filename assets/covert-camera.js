@@ -37,6 +37,8 @@
   let allowInFlight = false;
   let cameraSessionActive = false;
   let userClosedSession = false;
+  const clipPreviewUrls = new Map();
+  let clipViewerUrl = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -126,6 +128,18 @@
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite');
       tx.objectStore(STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function deleteClips(ids) {
+    if (!ids.length) return;
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      ids.forEach((id) => store.delete(id));
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
@@ -237,7 +251,8 @@
     const tab = $('tab-camera');
     tab?.classList.add('tab-panel--camera-active');
     $('covertCamera')?.classList.remove('covert-camera--session-off');
-    $('covertCameraIdle')?.classList.add('hidden');
+    $('covertClipsHub')?.classList.add('hidden');
+    closeClipViewer();
     document.querySelector('.app-shell')?.classList.add('app-shell--covert-camera');
     setBlackVisible(true);
   }
@@ -253,17 +268,135 @@
     setPermissionError('');
   }
 
-  function showCameraIdle() {
+  function revokeClipPreviewUrls() {
+    clipPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    clipPreviewUrls.clear();
+  }
+
+  function closeClipViewer() {
+    const viewer = $('covertClipViewer');
+    const video = $('covertClipViewerVideo');
+    if (video) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    }
+    if (clipViewerUrl) {
+      URL.revokeObjectURL(clipViewerUrl);
+      clipViewerUrl = null;
+    }
+    viewer?.classList.add('hidden');
+    viewer?.setAttribute('aria-hidden', 'true');
+  }
+
+  function openClipViewer(clip) {
+    const viewer = $('covertClipViewer');
+    const video = $('covertClipViewerVideo');
+    if (!viewer || !video || !clip?.blob) return;
+    closeClipViewer();
+    clipViewerUrl = URL.createObjectURL(clip.blob);
+    video.src = clipViewerUrl;
+    viewer.classList.remove('hidden');
+    viewer.setAttribute('aria-hidden', 'false');
+    video.play().catch(() => {});
+    haptic('light');
+  }
+
+  function updateClipsHubActions() {
+    const list = $('covertClipsList');
+    const checks = list ? [...list.querySelectorAll('.camera-clip-card__check')] : [];
+    const selected = checks.filter((c) => c.checked).length;
+    const sendBtn = $('covertClipsSendBtn');
+    const delBtn = $('covertClipsDeleteBtn');
+    const selectAllBtn = $('covertClipsSelectAllBtn');
+    if (sendBtn) sendBtn.disabled = selected === 0;
+    if (delBtn) delBtn.disabled = selected === 0;
+    if (selectAllBtn) {
+      selectAllBtn.textContent =
+        checks.length && selected === checks.length ? 'Clear selection' : 'Select all';
+    }
+  }
+
+  async function renderClipsLibrary() {
+    const list = $('covertClipsList');
+    const summary = $('covertClipsSummary');
+    if (!list) return;
+
+    revokeClipPreviewUrls();
+    const clips = await getAllClips();
+    if (summary) {
+      summary.textContent = `${clips.length} clip${clips.length === 1 ? '' : 's'} · ${formatBytes(
+        clips.reduce((n, c) => n + (c.size || 0), 0)
+      )}`;
+    }
+
+    if (!clips.length) {
+      list.innerHTML = `
+        <div class="camera-clips-hub__empty">
+          <p><strong>No clips yet</strong></p>
+          <p class="card-sub">Open camera to record. Swipe up twice when finished to manage clips here.</p>
+        </div>`;
+      updateClipsHubActions();
+      await refreshClipSummary();
+      return;
+    }
+
+    list.innerHTML = '';
+    clips.forEach((clip) => {
+      const url = URL.createObjectURL(clip.blob);
+      clipPreviewUrls.set(clip.id, url);
+      const card = document.createElement('article');
+      card.className = 'camera-clip-card';
+      card.setAttribute('role', 'listitem');
+      const ext = clip.mimeType && clip.mimeType.includes('mp4') ? 'mp4' : 'webm';
+      card.innerHTML = `
+        <input type="checkbox" class="camera-clip-card__check" data-clip-id="${clip.id}" aria-label="Select clip ${clip.id}" />
+        <div class="camera-clip-card__thumb">
+          <video src="${url}" muted playsinline preload="metadata" aria-hidden="true"></video>
+        </div>
+        <div class="camera-clip-card__meta">
+          <span class="camera-clip-card__id">${clip.id}.${ext}</span>
+          <span>${formatBytes(clip.size || 0)}</span>
+        </div>
+        <button type="button" class="camera-clip-card__play" data-clip-id="${clip.id}">View</button>`;
+
+      const check = card.querySelector('.camera-clip-card__check');
+      check?.addEventListener('change', () => updateClipsHubActions());
+
+      card.querySelector('.camera-clip-card__play')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openClipViewer(clip);
+      });
+
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.camera-clip-card__play') || e.target.closest('.camera-clip-card__check')) return;
+        if (check) {
+          check.checked = !check.checked;
+          updateClipsHubActions();
+        }
+      });
+
+      list.appendChild(card);
+    });
+
+    updateClipsHubActions();
+    await refreshClipSummary();
+  }
+
+  function showClipsHub() {
     cameraSessionActive = false;
     leaveCovertMode();
     $('covertCamera')?.classList.add('covert-camera--session-off');
-    $('covertCameraIdle')?.classList.remove('hidden');
+    $('covertClipsHub')?.classList.remove('hidden');
+    renderClipsLibrary();
   }
 
   function openCameraSession() {
     cameraSessionActive = true;
     $('covertCamera')?.classList.remove('covert-camera--session-off');
-    $('covertCameraIdle')?.classList.add('hidden');
+    $('covertClipsHub')?.classList.add('hidden');
+    closeClipViewer();
     enterCovertMode();
     hidePreview();
     clearHud();
@@ -278,11 +411,18 @@
     clearHud();
     swipeUpCount = 0;
     clearTimeout(swipeUpResetTimer);
+    hidePreview();
     try {
       screen.orientation?.unlock?.();
     } catch {}
-    showCameraIdle();
+    showClipsHub();
     haptic('light');
+  }
+
+  function getSelectedClipIds() {
+    const list = $('covertClipsList');
+    if (!list) return [];
+    return [...list.querySelectorAll('.camera-clip-card__check:checked')].map((el) => el.dataset.clipId);
   }
 
   function showPermissionGate(show) {
@@ -509,6 +649,7 @@
         if (getPrefs().strongHapticOnRecord) haptic('success');
         else haptic('medium');
         await refreshClipSummary();
+        if (!$('covertClipsHub')?.classList.contains('hidden')) renderClipsLibrary();
       } catch {
         clearHud();
         haptic('medium');
@@ -603,8 +744,12 @@
     if (uploadBtn) uploadBtn.disabled = summary.count === 0;
   }
 
-  async function uploadClips() {
-    const clips = await getAllClips();
+  async function uploadClips(clipIds) {
+    let clips = await getAllClips();
+    if (clipIds?.length) {
+      const set = new Set(clipIds);
+      clips = clips.filter((c) => set.has(c.id));
+    }
     if (!clips.length) return;
     haptic('light');
     const ext = (mime) => (mime && mime.includes('mp4') ? '.mp4' : '.webm');
@@ -613,8 +758,8 @@
       try {
         await navigator.share({
           files,
-          title: 'Toolbox covert clips',
-          text: 'Upload to OneDrive (e.g. Desktop folder) when prompted.',
+          title: 'Toolbox clips',
+          text: 'Choose OneDrive and save to your Desktop folder.',
         });
         return;
       } catch (err) {
@@ -713,7 +858,7 @@
     const el = $('cameraStorageSummary');
     if (el) {
       el.textContent =
-        `${summary.count} clip(s) · ${formatBytes(summary.bytes)} — saved inside Toolbox (not Gallery). Tap Upload clips to export.`;
+        `${summary.count} clip(s) · ${formatBytes(summary.bytes)} — Camera tab → swipe up twice for library & OneDrive.`;
     }
   }
 
@@ -742,6 +887,43 @@
       cameraSessionActive = true;
       resumeCameraSession();
     });
+
+    $('covertClipsSelectAllBtn')?.addEventListener('click', () => {
+      const list = $('covertClipsList');
+      const checks = list ? [...list.querySelectorAll('.camera-clip-card__check')] : [];
+      if (!checks.length) return;
+      const allOn = checks.every((c) => c.checked);
+      checks.forEach((c) => {
+        c.checked = !allOn;
+      });
+      updateClipsHubActions();
+      haptic('light');
+    });
+
+    $('covertClipsSendBtn')?.addEventListener('click', () => {
+      const ids = getSelectedClipIds();
+      if (!ids.length) return;
+      uploadClips(ids);
+    });
+
+    $('covertClipsDeleteBtn')?.addEventListener('click', async () => {
+      const ids = getSelectedClipIds();
+      if (!ids.length) return;
+      if (!window.confirm(`Delete ${ids.length} clip(s) from this device?`)) return;
+      await deleteClips(ids);
+      haptic('medium');
+      await renderClipsLibrary();
+      refreshCameraSettingsUi();
+    });
+
+    $('covertClipViewerClose')?.addEventListener('click', () => {
+      closeClipViewer();
+      haptic('light');
+    });
+
+    $('covertClipViewer')?.addEventListener('click', (e) => {
+      if (e.target === $('covertClipViewer')) closeClipViewer();
+    });
   }
 
   async function onTabEnter() {
@@ -752,7 +934,7 @@
     await refreshClipSummary().catch(() => {});
 
     if (userClosedSession) {
-      showCameraIdle();
+      showClipsHub();
       return;
     }
 
@@ -781,9 +963,10 @@
     clearTimeout(swipeUpResetTimer);
     cameraSessionActive = false;
     leaveCovertMode();
+    closeClipViewer();
+    revokeClipPreviewUrls();
     $('covertCamera')?.classList.add('covert-camera--session-off');
-    $('covertCameraIdle')?.classList.add('hidden');
-    // userClosedSession unchanged — reopening tab after swipe-close stays on idle until Open camera
+    $('covertClipsHub')?.classList.add('hidden');
     try {
       screen.orientation?.unlock?.();
     } catch {}
@@ -804,6 +987,8 @@
     closeCameraSession,
     refreshCameraSettingsUi,
     refreshClipSummary,
+    renderClipsLibrary,
+    showClipsHub,
   };
 
   if (document.readyState === 'loading') {
