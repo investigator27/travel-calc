@@ -347,6 +347,40 @@
     const black = $('covertBlack');
     if (black) black.classList.toggle('covert-camera__black--hidden', !visible);
     document.documentElement.style.backgroundColor = visible ? '#000' : '';
+    const themeMeta = document.querySelector('meta[name="theme-color"]:not([media])');
+    if (themeMeta) themeMeta.content = visible ? '#000000' : '';
+  }
+
+  async function enterCovertFullscreen() {
+    const target = $('tab-camera') || $('covertCamera');
+    if (!target?.requestFullscreen && !document.documentElement.requestFullscreen) return false;
+    if (document.fullscreenElement) return true;
+    try {
+      await target.requestFullscreen({ navigationUI: 'hide' });
+      usedFullscreenForOrientation = true;
+      return true;
+    } catch {
+      try {
+        await document.documentElement.requestFullscreen();
+        usedFullscreenForOrientation = true;
+        return true;
+      } catch {}
+    }
+    return false;
+  }
+
+  function videoTrackIsLandscape(stream) {
+    const track = stream?.getVideoTracks?.()[0];
+    if (!track) return false;
+    const s = track.getSettings?.() || {};
+    return !!(s.width && s.height && s.width >= s.height);
+  }
+
+  async function prepareLandscapeCapture() {
+    await enterCovertFullscreen();
+    const locked = await lockLandscape();
+    if (!locked) await enterCovertFullscreen();
+    return locked;
   }
 
   function enterCovertMode() {
@@ -415,18 +449,15 @@
 
   function applyClipViewerLayout(video) {
     if (!video) return;
+    const stage = video.closest('.camera-clip-viewer__stage');
     const apply = () => {
       const w = video.videoWidth || 0;
       const h = video.videoHeight || 0;
-      video.classList.remove(
-        'camera-clip-viewer__video--landscape',
-        'camera-clip-viewer__video--portrait'
-      );
+      video.style.transform = '';
+      if (stage) stage.classList.toggle('camera-clip-viewer__stage--rotated', !!(w && h && w < h));
       if (!w || !h) return;
-      if (w >= h) {
-        video.classList.add('camera-clip-viewer__video--landscape');
-      } else {
-        video.classList.add('camera-clip-viewer__video--portrait');
+      if (w < h) {
+        showBriefHud('Clip saved portrait — showing rotated', 2200);
       }
     };
     if (video.readyState >= 1) apply();
@@ -555,7 +586,7 @@
     enterCovertMode();
     hidePreview();
     clearHud();
-    lockLandscape();
+    void prepareLandscapeCapture();
   }
 
   function closeCameraSession() {
@@ -777,8 +808,15 @@
     setPermissionError('');
     clearHud();
     openCameraSession();
-    await lockLandscape();
+    await prepareLandscapeCapture();
     await enforceLandscapeVideoTrack(mediaStream);
+    if (!videoTrackIsLandscape(mediaStream)) {
+      await prepareLandscapeCapture();
+      await enforceLandscapeVideoTrack(mediaStream);
+    }
+    if (!videoTrackIsLandscape(mediaStream)) {
+      showBriefHud('Hold phone sideways for landscape', 3500);
+    }
 
     const video = $('covertVideoPreview');
     if (video) {
@@ -912,7 +950,7 @@
     setBlackVisible(true);
     hidePreview();
     await acquireWakeLock();
-    await lockLandscape();
+    await prepareLandscapeCapture();
     await enforceLandscapeVideoTrack(mediaStream);
     showBriefHud('Recording', HUD_RECORDING_MS);
     if (getPrefs().strongHapticOnRecord) haptic('success');
