@@ -176,7 +176,7 @@
     <header class="hero">
       <div class="logo" role="img" aria-label="Toolbox"></div>
       <h1>Toolbox</h1>
-      <p class="tagline">Phone or computer</p>
+      <p class="tagline" id="deviceTagline">Loading…</p>
     </header>
 
     <section class="card" aria-labelledby="qr-heading">
@@ -229,13 +229,38 @@
 
     if (openAppBtn) openAppBtn.href = appUrl;
 
-    var isAndroid = /Android/i.test(navigator.userAgent);
-    var isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent);
-    var isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     var ua = navigator.userAgent || '';
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     var isInAppBrowser = /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Twitter/i.test(ua);
-    var isPhone = isAndroid || isIOS;
-    var isComputer = !isPhone && !/Mobile/i.test(ua);
+
+    function detectInstallPlatform() {
+      var uad = navigator.userAgentData;
+      var platformName = uad && uad.platform ? String(uad.platform) : '';
+      if (platformName === 'Android' || /Android/i.test(ua)) {
+        return { id: 'android', label: 'Install on Android', tagline: 'You’re on Android', isMobile: true };
+      }
+      if (/iPhone|iPad|iPod/i.test(ua) || platformName === 'iOS') {
+        return { id: 'ios', label: 'Install not available', tagline: 'You’re on iPhone', isMobile: true };
+      }
+      if (/CrOS/i.test(ua) || platformName === 'Chrome OS') {
+        return { id: 'chromeos', label: 'Install on Chromebook', tagline: 'You’re on Chromebook', isMobile: false };
+      }
+      if (/Windows/i.test(ua) || platformName === 'Windows') {
+        return { id: 'windows', label: 'Install on Windows', tagline: 'You’re on Windows', isMobile: false };
+      }
+      if (/Macintosh|Mac OS X/i.test(ua) || platformName === 'macOS') {
+        return { id: 'mac', label: 'Install on Mac', tagline: 'You’re on Mac', isMobile: false };
+      }
+      if (/Linux/i.test(ua) || platformName === 'Linux') {
+        return { id: 'linux', label: 'Install on Linux', tagline: 'You’re on Linux', isMobile: false };
+      }
+      return { id: 'unknown', label: 'Install app', tagline: 'Install Toolbox on this device', isMobile: /Mobile/i.test(ua) };
+    }
+
+    var platform = detectInstallPlatform();
+    var isAndroid = platform.id === 'android';
+    var isIOS = platform.id === 'ios';
+    var isComputer = !platform.isMobile && platform.id !== 'ios';
 
     var installBtn = document.getElementById('installBtn');
     var installCallout = document.getElementById('installCallout');
@@ -250,16 +275,20 @@
     }
 
     function installButtonLabel() {
-      if (isAndroid) return 'Install on phone';
-      if (isComputer) return 'Install on computer';
-      return 'Install app';
+      return platform.label;
+    }
+
+    function installHint() {
+      return 'Tap ' + platform.label + ', or use the browser menu (⋮) → Install app.';
     }
 
     function refreshActionButtons() {
+      var taglineEl = document.getElementById('deviceTagline');
+      if (taglineEl) taglineEl.textContent = platform.tagline;
       if (openAppBtn) openAppBtn.textContent = 'Use in browser';
       if (openDesktopBtn) {
-        openDesktopBtn.classList.toggle('hidden', isComputer);
-        if (!isComputer) openDesktopBtn.textContent = 'Open on computer';
+        openDesktopBtn.classList.toggle('hidden', !isAndroid);
+        openDesktopBtn.textContent = 'Open on Windows or Mac';
       }
     }
     refreshActionButtons();
@@ -269,11 +298,11 @@
       if (!installBtn || installBtn.disabled) return;
       installBtn.disabled = false;
       installBtn.textContent = installButtonLabel();
-      setCallout('Tap ' + installButtonLabel() + ' (or use the browser menu → Install app).');
+      setCallout(installHint());
     }
 
     function blockIOSInstall() {
-      setCallout('iPhone cannot install from this page. Use Use in browser, or scan the QR on an Android phone or computer.');
+      setCallout('Install is not available on iPhone from this page. Use Use in browser, or open this link on Android or Windows.');
       if (installBtn) {
         installBtn.disabled = true;
         installBtn.textContent = 'Install not available';
@@ -407,9 +436,7 @@
         if (!installReady && installBtn && !deferredPrompt) {
           installBtn.disabled = false;
           installBtn.textContent = installButtonLabel();
-          setCallout(isComputer
-            ? 'Tap Install on computer, or use the browser menu (⋮) → Install app.'
-            : 'Tap Install on phone, or use the browser menu (⋮) → Install app.');
+          setCallout(installHint());
         }
       }).catch(function () {});
     }

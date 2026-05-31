@@ -1,10 +1,23 @@
 {
-  "latest": "v131",
+  "latest": "v132",
   "appVersion": "3.5.4",
   "highlights": [
-    "Install page: clearer buttons for phone vs computer; desktop can install the app too."
+    "Install page detects Android vs Windows/Mac and shows Install on Android or Install on Windows."
   ],
   "builds": {
+    "v132": {
+      "intro": "Build v132 — install page detects your device.",
+      "sections": [
+        {
+          "heading": "Install",
+          "items": [
+            "Install button shows Install on Android, Install on Windows, Install on Mac, etc., based on where you open the link.",
+            "Subtitle on the install page confirms detected device (e.g. You’re on Windows).",
+            "Deploy index.html, surveillance-travel-calculator.html, service-worker.js, and release-notes.json (v132)."
+          ]
+        }
+      ]
+    },
     "v131": {
       "intro": "Build v131 — install page wording (phone + computer).",
       "sections": [
