@@ -1157,19 +1157,19 @@
     });
   }
 
-  async function onTabEnter(opts = {}) {
+  async function onTabEnter() {
     bindUi();
     bindSettings();
     swipeUpCount = 0;
     clearTimeout(swipeUpResetTimer);
     await refreshClipSummary().catch(() => {});
 
-    if (opts.coldStart || userClosedSession) {
+    // Saved clips first — only enter live/fullscreen after "Open camera" (cameraSessionActive).
+    if (!cameraSessionActive) {
       showClipsHub();
       return;
     }
 
-    cameraSessionActive = true;
     resumeCameraSession();
   }
 
