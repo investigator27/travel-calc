@@ -721,10 +721,13 @@
     return card;
   }
 
+  const CLIP_DAY_NAV_ICON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16v12H4z"/><path d="M9 12h6"/><path d="M12 8V4"/><path d="M8 4h8"/></svg>';
+
   async function renderClipFolderGrid(clips) {
-    const grid = $('covertClipsFolderGrid');
+    const list = $('covertClipsDayList');
     const summary = $('covertClipsSummary');
-    if (!grid) return;
+    if (!list) return;
 
     if (summary) {
       summary.textContent = `${clips.length} clip${clips.length === 1 ? '' : 's'} · ${formatBytes(
@@ -733,38 +736,58 @@
     }
 
     if (!clips.length) {
-      grid.innerHTML = `
-        <div class="camera-clips-card__empty" style="grid-column:1/-1">
-          <p><strong>No clips yet</strong></p>
-          <p class="card-sub">Tap Covert Camera to record. Swipe up twice when finished to open today’s folder.</p>
+      list.innerHTML = `
+        <div class="camera-hub-block" role="listitem">
+          <h2 class="settings-section-title">Days</h2>
+          <div class="settings-group">
+            <div class="camera-clips-card__empty camera-clips-card__empty--hub">
+              <p><strong>No clips yet</strong></p>
+              <p class="card-sub">Tap Covert Camera to record. Swipe up twice when finished to open that day.</p>
+            </div>
+          </div>
         </div>`;
       return;
     }
 
     const dayGroups = groupClipsByDay(clips);
-    grid.innerHTML = '';
+    list.innerHTML = '';
 
     for (const [dayKey, dayClips] of dayGroups) {
       const newest = dayClips[0];
-      const thumbUrl = URL.createObjectURL(newest.blob);
-      clipPreviewUrls.set(`folder-${dayKey}`, thumbUrl);
       const dayBytes = dayClips.reduce((n, c) => n + (c.size || 0), 0);
+      const sectionTitle = formatClipDayHeading(newest.createdAt);
+      const rowLabel = formatClipDayShort(newest.createdAt);
+      const meta = `${dayClips.length} clip${dayClips.length === 1 ? '' : 's'} · ${formatBytes(dayBytes)}`;
+
+      const block = document.createElement('div');
+      block.className = 'camera-hub-block';
+      block.setAttribute('role', 'listitem');
+
+      const title = document.createElement('h2');
+      title.className = 'settings-section-title';
+      title.textContent = sectionTitle;
+
+      const group = document.createElement('div');
+      group.className = 'settings-group';
+
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'camera-day-folder';
+      btn.className = 'settings-row settings-row--nav';
       btn.dataset.cameraPushDay = dayKey;
-      btn.setAttribute('role', 'listitem');
       btn.setAttribute(
         'aria-label',
-        `${formatClipDayHeading(newest.createdAt)}, ${dayClips.length} clip${dayClips.length === 1 ? '' : 's'}, ${formatBytes(dayBytes)}`
+        `${sectionTitle}, ${meta}. Open clips for this day.`
       );
       btn.innerHTML = `
-        <span class="camera-day-folder__thumb">
-          <video src="${thumbUrl}" muted playsinline preload="metadata" aria-hidden="true"></video>
-        </span>
-        <span class="camera-day-folder__date">${formatClipDayShort(newest.createdAt)}</span>
-        <span class="camera-day-folder__meta">${dayClips.length} clip${dayClips.length === 1 ? '' : 's'} · ${formatBytes(dayBytes)}</span>`;
-      grid.appendChild(btn);
+        <span class="settings-row__icon" aria-hidden="true">${CLIP_DAY_NAV_ICON}</span>
+        <span class="settings-row__label">${rowLabel}</span>
+        <span class="settings-row__meta">${meta}</span>
+        <span class="settings-row__chevron" aria-hidden="true">›</span>`;
+
+      group.appendChild(btn);
+      block.appendChild(title);
+      block.appendChild(group);
+      list.appendChild(block);
     }
   }
 
