@@ -215,21 +215,32 @@
 
   let cameraNavStack = ['root'];
 
-  function paintCameraScreens() {
-    const view = $('cameraTabView');
-    const hub = $('covertClipsHub');
-    if (!view) return;
-    const activeId = cameraNavStack[cameraNavStack.length - 1] || 'root';
-    const isSub = activeId !== 'root';
-    view.classList.toggle('is-subpage', isSub);
-    if (hub) {
-      hub.classList.remove('hidden');
-      hub.setAttribute('aria-hidden', 'false');
+  function scrollCameraTabToTop() {
+    const content = document.getElementById('appContent');
+    if (!content) return;
+    try {
+      content.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      content.scrollTop = 0;
     }
+  }
+
+  function paintCameraScreens() {
+    const hub = $('covertClipsHub');
+    const activeId = cameraNavStack[cameraNavStack.length - 1] || 'root';
+    const isRoot = activeId === 'root';
+    const sessionOpen = cameraSessionActive && !$('covertCamera')?.classList.contains('covert-camera--session-off');
+
+    if (hub) {
+      const showHub = isRoot && !sessionOpen;
+      hub.classList.toggle('hidden', !showHub);
+      hub.setAttribute('aria-hidden', showHub ? 'false' : 'true');
+    }
+
     document.querySelectorAll('[data-camera-panel]').forEach((panel) => {
       const id = panel.dataset.cameraPanel || '';
-      const open = id === activeId;
-      panel.classList.toggle('is-open', open);
+      const open = !isRoot && id === activeId && !sessionOpen;
+      panel.classList.toggle('hidden', !open);
       if (open) {
         panel.removeAttribute('hidden');
         panel.setAttribute('aria-hidden', 'false');
@@ -238,6 +249,7 @@
         panel.setAttribute('aria-hidden', 'true');
       }
     });
+
     if (activeId === 'clip-library') void renderClipsLibrary();
     if (activeId === 'camera-settings') void refreshCameraSettingsUi();
   }
@@ -248,17 +260,20 @@
     if (top === screenId) return;
     cameraNavStack.push(screenId);
     paintCameraScreens();
+    scrollCameraTabToTop();
   }
 
   function popCameraScreen() {
     if (cameraNavStack.length <= 1) return;
     cameraNavStack.pop();
     paintCameraScreens();
+    scrollCameraTabToTop();
   }
 
   function resetCameraNav(screenId = 'root') {
     cameraNavStack = [screenId || 'root'];
     paintCameraScreens();
+    if ((screenId || 'root') !== 'root') scrollCameraTabToTop();
   }
 
   function bindCameraNav() {
@@ -468,7 +483,6 @@
     const tab = $('tab-camera');
     tab?.classList.add('tab-panel--camera-active');
     $('covertCamera')?.classList.remove('covert-camera--session-off');
-    $('covertClipsHub')?.classList.add('hidden');
     closeClipViewer();
     document.documentElement.classList.add('toolbox-covert-active');
     document.querySelector('.app-shell')?.classList.add('app-shell--covert-camera');
@@ -589,10 +603,16 @@
 
     if (!clips.length) {
       list.innerHTML = `
-        <div class="camera-clips-card__empty">
-          <p><strong>No clips yet</strong></p>
-          <p class="card-sub">Tap Covert Camera to record. Swipe up twice when finished to return here.</p>
-        </div>`;
+        <section class="camera-clips-day" aria-label="No clips">
+          <div class="settings-group camera-clips-day__folder">
+            <div class="camera-clips-day__folder-body">
+              <div class="camera-clips-card__empty">
+                <p><strong>No clips yet</strong></p>
+                <p class="card-sub">Tap Covert Camera to record. Swipe up twice when finished to return here.</p>
+              </div>
+            </div>
+          </div>
+        </section>`;
       updateClipsHubActions();
       await refreshClipSummary();
       return;
@@ -610,21 +630,32 @@
     for (const [, dayClips] of dayGroups) {
       const heading = formatClipDayHeading(dayClips[0]?.createdAt);
       const dayKey = getClipDayKey(dayClips[0]?.createdAt);
+      const clipCount = dayClips.length;
       const section = document.createElement('section');
       section.className = 'camera-clips-day';
       section.setAttribute('role', 'group');
       section.setAttribute('aria-labelledby', `clip-day-${dayKey}`);
 
-      const title = document.createElement('h3');
-      title.className = 'camera-clips-day__title';
-      title.id = `clip-day-${dayKey}`;
-      title.textContent = heading;
-      section.appendChild(title);
+      const folder = document.createElement('div');
+      folder.className = 'settings-group camera-clips-day__folder';
+
+      const folderHead = document.createElement('div');
+      folderHead.className = 'settings-row settings-row--static camera-clips-day__folder-head';
+      folderHead.id = `clip-day-${dayKey}`;
+      folderHead.innerHTML = `
+        <span class="settings-row__label">${heading}</span>
+        <span class="settings-row__meta">${clipCount} clip${clipCount === 1 ? '' : 's'}</span>`;
+      folder.appendChild(folderHead);
+
+      const folderBody = document.createElement('div');
+      folderBody.className = 'camera-clips-day__folder-body';
 
       const grid = document.createElement('div');
       grid.className = 'camera-clips-day__grid';
       grid.setAttribute('role', 'list');
-      section.appendChild(grid);
+      folderBody.appendChild(grid);
+      folder.appendChild(folderBody);
+      section.appendChild(folder);
 
       for (const clip of dayClips) {
         const url = URL.createObjectURL(clip.blob);
@@ -685,7 +716,6 @@
     cameraSessionActive = false;
     leaveCovertMode();
     $('covertCamera')?.classList.add('covert-camera--session-off');
-    $('covertClipsHub')?.classList.remove('hidden');
     resetCameraNav('clip-library');
   }
 
@@ -693,14 +723,13 @@
     cameraSessionActive = false;
     leaveCovertMode();
     $('covertCamera')?.classList.add('covert-camera--session-off');
-    $('covertClipsHub')?.classList.remove('hidden');
     resetCameraNav('root');
   }
 
   function openCameraSession() {
     cameraSessionActive = true;
     $('covertCamera')?.classList.remove('covert-camera--session-off');
-    $('covertClipsHub')?.classList.add('hidden');
+    paintCameraScreens();
     closeClipViewer();
     enterCovertMode();
     hidePreview();
@@ -1051,7 +1080,7 @@
         if (getPrefs().strongHapticOnRecord) haptic('success');
         else haptic('medium');
         await refreshClipSummary();
-        if (!$('covertClipsHub')?.classList.contains('hidden')) renderClipsLibrary();
+        if (!$('cameraPanelClipLibrary')?.classList.contains('hidden')) void renderClipsLibrary();
       } catch {
         clearHud();
         haptic('medium');
@@ -1398,7 +1427,6 @@
     cameraSessionActive = false;
     forceExitCovertUi();
     revokeClipPreviewUrls();
-    $('covertClipsHub')?.classList.add('hidden');
     resetCameraNav('root');
   }
 
